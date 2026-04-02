@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAdminAuth } from '@/context/AuthContext';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 import {
   HomeIcon,
   ShoppingBagIcon,
@@ -24,6 +25,25 @@ export default function Sidebar() {
   const router = useRouter();
   const { logout } = useAdminAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    const fetchPending = async () => {
+      const { count } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['pending', 'paid']);
+      setPendingCount(count || 0);
+    };
+    fetchPending();
+
+    const channel = supabase
+      .channel('sidebar-orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchPending)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -40,7 +60,7 @@ export default function Sidebar() {
         <Bars3Icon className="h-6 w-6 text-gray-600" />
       </button>
 
-      {/* Sidebar for desktop and mobile overlay */}
+      {/* Sidebar */}
       <div
         className={`
           fixed inset-y-0 left-0 z-40 w-64 transform bg-white shadow-xl transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
@@ -88,6 +108,11 @@ export default function Sidebar() {
                 >
                   <item.icon className="h-5 w-5" aria-hidden="true" />
                   <span>{item.name}</span>
+                  {item.name === 'Orders' && pendingCount > 0 && (
+                    <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                      {pendingCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}

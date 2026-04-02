@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAdminAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { supabase } from '@/lib/supabaseClient';
@@ -9,6 +9,7 @@ import {
   CurrencyDollarIcon,
   ShoppingCartIcon,
   ClipboardDocumentListIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 
 export default function AdminDashboard() {
@@ -19,31 +20,34 @@ export default function AdminDashboard() {
   const [pendingCount, setPendingCount] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  const fetchStats = useCallback(async () => {
+    const { count: pending } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['pending', 'paid']);
+    setPendingCount(pending || 0);
+
+    const { count: totalOrd } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true });
+    setTotalOrders(totalOrd || 0);
+
+    const today = new Date().toISOString().split('T')[0];
+    const { data: todayOrders } = await supabase
+      .from('orders')
+      .select('total_amount')
+      .eq('status', 'paid')
+      .gte('created_at', `${today}T00:00:00`)
+      .lt('created_at', `${today}T23:59:59`);
+    const total = todayOrders?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
+    setTotalRevenue(total);
+    setLastUpdated(new Date());
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    const fetchStats = async () => {
-      const { count: pending } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['pending', 'paid']);
-      setPendingCount(pending || 0);
-
-      const { count: totalOrd } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true });
-      setTotalOrders(totalOrd || 0);
-
-      const today = new Date().toISOString().split('T')[0];
-      const { data: todayOrders } = await supabase
-        .from('orders')
-        .select('total_amount')
-        .eq('status', 'paid')
-        .gte('created_at', `${today}T00:00:00`)
-        .lt('created_at', `${today}T23:59:59`);
-      const total = todayOrders?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
-      setTotalRevenue(total);
-    };
     fetchStats();
 
     const channel = supabase
@@ -51,9 +55,7 @@ export default function AdminDashboard() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
         fetchStats();
         const newOrder = payload.new as any;
-        // Show in‑app toast
         showToast(`New order #${newOrder.id} from ${newOrder.customer_name} – ₦${newOrder.total_amount.toLocaleString()}`, 'success');
-        // Browser notification (optional)
         if (Notification.permission === 'granted') {
           new Notification('New order received!', {
             body: `${newOrder.customer_name} – ₦${newOrder.total_amount.toLocaleString()}`,
@@ -65,7 +67,7 @@ export default function AdminDashboard() {
 
     if (Notification.permission === 'default') Notification.requestPermission();
     return () => { supabase.removeChannel(channel); };
-  }, [isAuthenticated, showToast]);
+  }, [isAuthenticated, fetchStats, showToast]);
 
   if (!isAuthenticated) {
     const handleSubmit = (e: React.FormEvent) => {
@@ -128,9 +130,21 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-        <p className="mt-1 text-gray-500">Overview of your restaurant performance</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+          <p className="mt-1 text-gray-500">Overview of your restaurant performance</p>
+          <p className="mt-1 text-xs text-gray-400">
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </p>
+        </div>
+        <button
+          onClick={fetchStats}
+          className="rounded-lg p-2 hover:bg-gray-100 transition"
+          title="Refresh stats"
+        >
+          <ArrowPathIcon className="h-5 w-5 text-gray-500" />
+        </button>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
