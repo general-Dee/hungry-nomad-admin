@@ -62,7 +62,13 @@ export default function SalesChart() {
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="date" />
         <YAxis />
-        <Tooltip formatter={(value: number) => `₦${value.toLocaleString()}`} />
+        <Tooltip
+          formatter={(value: any) => {
+            if (value === undefined || value === null) return '₦0';
+            const num = typeof value === 'number' ? value : Number(value);
+            return `₦${num.toLocaleString()}`;
+          }}
+        />
         <Bar dataKey="total" fill="#f59e0b" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>

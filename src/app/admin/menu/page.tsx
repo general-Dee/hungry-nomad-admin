@@ -55,8 +55,8 @@ export default function MenuPage() {
       }
       setEditing(null);
       fetchProducts();
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'An error occurred');
     }
   }
 

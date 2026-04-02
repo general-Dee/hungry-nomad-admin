@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabaseClient';
 import SalesChart from '@/components/admin/SalesChart';
 
 export default function AdminDashboard() {
-  const { login, isAuthenticated, logout } = useAdminAuth();
+  const { login, isAuthenticated, logout: _logout } = useAdminAuth(); // renamed to avoid unused warning
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [pendingCount, setPendingCount] = useState(0);
@@ -91,7 +91,7 @@ export default function AdminDashboard() {
     <div className="max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-1">Welcome back! Here's what's happening today.</p>
+        <p className="text-gray-500 mt-1">Welcome back! Here&apos;s what&apos;s happening today.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -113,7 +113,7 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Today's Revenue</p>
+              <p className="text-sm text-gray-500">Today&apos;s Revenue</p>
               <p className="text-2xl font-bold text-gray-900">₦{totalRevenue.toLocaleString()}</p>
             </div>
             <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center">
