@@ -2,25 +2,35 @@
 
 import { useState, useEffect } from 'react';
 import { useAdminAuth } from '@/context/AuthContext';
-import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import SalesChart from '@/components/admin/SalesChart';
+import {
+  CurrencyDollarIcon,
+  ShoppingCartIcon,
+  ClipboardDocumentListIcon,
+} from '@heroicons/react/24/outline';
 
 export default function AdminDashboard() {
-  const { login, isAuthenticated, logout: _logout } = useAdminAuth(); // renamed to avoid unused warning
+  const { login, isAuthenticated } = useAdminAuth();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [pendingCount, setPendingCount] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalOrders, setTotalOrders] = useState(0);
 
   useEffect(() => {
     if (!isAuthenticated) return;
     const fetchStats = async () => {
-      const { count } = await supabase
+      const { count: pending } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
         .in('status', ['pending', 'paid']);
-      setPendingCount(count || 0);
+      setPendingCount(pending || 0);
+
+      const { count: totalOrd } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true });
+      setTotalOrders(totalOrd || 0);
 
       const today = new Date().toISOString().split('T')[0];
       const { data: todayOrders } = await supabase
@@ -56,14 +66,14 @@ export default function AdminDashboard() {
       else setError('Wrong password');
     };
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-xl p-8 w-96 border border-gray-100">
-          <div className="text-center mb-6">
-            <div className="h-12 w-12 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl mx-auto flex items-center justify-center">
-              <span className="text-white font-bold text-xl">HN</span>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+          <div className="mb-6 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-amber-500 to-orange-500">
+              <span className="text-2xl font-bold text-white">HN</span>
             </div>
-            <h2 className="text-2xl font-bold mt-4">Admin Login</h2>
-            <p className="text-gray-500 text-sm mt-1">Enter your password to continue</p>
+            <h2 className="mt-4 text-2xl font-bold text-gray-800">Welcome Back</h2>
+            <p className="mt-1 text-sm text-gray-500">Sign in to manage your restaurant</p>
           </div>
           <form onSubmit={handleSubmit}>
             <input
@@ -71,15 +81,15 @@ export default function AdminDashboard() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-200 px-4 py-3 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
               autoFocus
             />
-            {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+            {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
             <button
               type="submit"
-              className="w-full mt-6 bg-gradient-to-r from-amber-500 to-orange-500 text-white py-2 rounded-lg font-medium hover:opacity-90 transition"
+              className="mt-4 w-full rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 py-3 font-medium text-white transition hover:opacity-90"
             >
-              Login
+              Sign In
             </button>
           </form>
         </div>
@@ -87,60 +97,58 @@ export default function AdminDashboard() {
     );
   }
 
+  const stats = [
+    {
+      name: 'Today’s Revenue',
+      value: `₦${totalRevenue.toLocaleString()}`,
+      icon: CurrencyDollarIcon,
+      color: 'bg-emerald-100 text-emerald-600',
+    },
+    {
+      name: 'Pending Orders',
+      value: pendingCount,
+      icon: ShoppingCartIcon,
+      color: 'bg-amber-100 text-amber-600',
+    },
+    {
+      name: 'Total Orders',
+      value: totalOrders,
+      icon: ClipboardDocumentListIcon,
+      color: 'bg-blue-100 text-blue-600',
+    },
+  ];
+
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-1">Welcome back! Here&apos;s what&apos;s happening today.</p>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+        <p className="mt-1 text-gray-500">Overview of your restaurant performance</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Pending Orders</p>
-              <p className="text-2xl font-bold text-gray-900">{pendingCount}</p>
-            </div>
-            <div className="h-10 w-10 bg-amber-100 rounded-full flex items-center justify-center">
-              <span className="text-amber-600 text-lg">📦</span>
-            </div>
-          </div>
-          <Link href="/admin/orders" className="text-sm text-amber-600 hover:underline mt-3 inline-block">
-            View all →
-          </Link>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Today&apos;s Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">₦{totalRevenue.toLocaleString()}</p>
-            </div>
-            <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center">
-              <span className="text-green-600 text-lg">💰</span>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {stats.map((stat) => (
+          <div
+            key={stat.name}
+            className="rounded-2xl bg-white p-6 shadow-sm transition-all hover:shadow-md"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">{stat.name}</p>
+                <p className="mt-1 text-2xl font-bold text-gray-800">{stat.value}</p>
+              </div>
+              <div className={`rounded-full p-3 ${stat.color}`}>
+                <stat.icon className="h-6 w-6" aria-hidden="true" />
+              </div>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Menu Items</p>
-              <p className="text-2xl font-bold text-gray-900">—</p>
-            </div>
-            <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
-              <span className="text-purple-600 text-lg">🍔</span>
-            </div>
-          </div>
-          <Link href="/admin/menu" className="text-sm text-amber-600 hover:underline mt-3 inline-block">
-            Manage →
-          </Link>
-        </div>
+        ))}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Sales Overview (Last 7 days)</h2>
-        <SalesChart />
+      <div className="rounded-2xl bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-gray-800">Sales Overview (Last 7 days)</h2>
+        <div className="mt-4">
+          <SalesChart />
+        </div>
       </div>
     </div>
   );
