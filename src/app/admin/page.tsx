@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAdminAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import { supabase } from '@/lib/supabaseClient';
 import SalesChart from '@/components/admin/SalesChart';
 import {
@@ -12,6 +13,7 @@ import {
 
 export default function AdminDashboard() {
   const { login, isAuthenticated } = useAdminAuth();
+  const { showToast } = useToast();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [pendingCount, setPendingCount] = useState(0);
@@ -46,10 +48,16 @@ export default function AdminDashboard() {
 
     const channel = supabase
       .channel('admin-dashboard')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
         fetchStats();
+        const newOrder = payload.new as any;
+        // Show in‑app toast
+        showToast(`New order #${newOrder.id} from ${newOrder.customer_name} – ₦${newOrder.total_amount.toLocaleString()}`, 'success');
+        // Browser notification (optional)
         if (Notification.permission === 'granted') {
-          new Notification('New order received!', { body: 'Check the orders page.' });
+          new Notification('New order received!', {
+            body: `${newOrder.customer_name} – ₦${newOrder.total_amount.toLocaleString()}`,
+          });
         }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => fetchStats())
@@ -57,7 +65,7 @@ export default function AdminDashboard() {
 
     if (Notification.permission === 'default') Notification.requestPermission();
     return () => { supabase.removeChannel(channel); };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, showToast]);
 
   if (!isAuthenticated) {
     const handleSubmit = (e: React.FormEvent) => {
@@ -99,7 +107,7 @@ export default function AdminDashboard() {
 
   const stats = [
     {
-      name: 'Today’s Revenue',
+      name: "Today's Revenue",
       value: `₦${totalRevenue.toLocaleString()}`,
       icon: CurrencyDollarIcon,
       color: 'bg-emerald-100 text-emerald-600',
