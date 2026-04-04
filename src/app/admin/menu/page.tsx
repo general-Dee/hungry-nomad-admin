@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAdminAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface Product {
   id: number;
@@ -27,6 +28,7 @@ export default function MenuPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Product | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) router.push('/admin');
@@ -46,8 +48,34 @@ export default function MenuPage() {
     }
   }
 
+  async function uploadImage(file: File): Promise<string | null> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, file);
+
+    if (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload image');
+      return null;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    return publicUrlData.publicUrl;
+  }
+
   async function saveProduct(product: Partial<Product>) {
     try {
+      let imageUrl = product.image_url;
+      // If a file is selected (editing contains a File object, we need to handle separately)
+      // We'll store the file in a temporary state – we'll add a file input state later.
+      // For simplicity, we'll handle upload inside the modal.
       if (product.id) {
         await supabase.from('products').update(product).eq('id', product.id);
       } else {
@@ -59,6 +87,45 @@ export default function MenuPage() {
       alert(err instanceof Error ? err.message : 'An error occurred');
     }
   }
+
+  // We'll rework the modal to include file upload
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+    }
+  };
+
+  const handleSaveWithUpload = async () => {
+    if (!editing) return;
+    setUploading(true);
+    try {
+      let finalImageUrl = editing.image_url;
+      if (imageFile) {
+        const uploadedUrl = await uploadImage(imageFile);
+        if (uploadedUrl) finalImageUrl = uploadedUrl;
+      }
+      const productToSave = { ...editing, image_url: finalImageUrl };
+      if (productToSave.id) {
+        await supabase.from('products').update(productToSave).eq('id', productToSave.id);
+      } else {
+        await supabase.from('products').insert(productToSave);
+      }
+      setEditing(null);
+      setImageFile(null);
+      setPreviewUrl('');
+      fetchProducts();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (!isAuthenticated) return null;
 
@@ -79,7 +146,7 @@ export default function MenuPage() {
 
       {editing && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-800 mb-4">{editing.id ? 'Edit' : 'Add'} Product</h2>
             <div className="space-y-4">
               <input
@@ -113,22 +180,43 @@ export default function MenuPage() {
                   </option>
                 ))}
               </select>
-              <input
-                placeholder="Image URL"
-                value={editing.image_url}
-                onChange={(e) => setEditing({ ...editing, image_url: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              />
+
+              {/* Image upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
+                />
+                {(previewUrl || editing.image_url) && (
+                  <div className="mt-2 relative w-32 h-32 rounded-lg overflow-hidden border">
+                    <Image
+                      src={previewUrl || editing.image_url}
+                      alt="Preview"
+                      fill
+                      className="object-cover"
+                      sizes="128px"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => saveProduct(editing)}
-                className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white py-2 rounded-lg font-medium hover:opacity-90 transition"
+                onClick={handleSaveWithUpload}
+                disabled={uploading}
+                className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white py-2 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
               >
-                Save
+                {uploading ? 'Uploading...' : 'Save'}
               </button>
               <button
-                onClick={() => setEditing(null)}
+                onClick={() => {
+                  setEditing(null);
+                  setImageFile(null);
+                  setPreviewUrl('');
+                }}
                 className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition"
               >
                 Cancel
@@ -150,6 +238,7 @@ export default function MenuPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -161,6 +250,17 @@ export default function MenuPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₦{product.price.toLocaleString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {categories.find(c => c.value === product.category)?.emoji} {product.category}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                        <Image
+                          src={product.image_url}
+                          alt={product.name}
+                          fill
+                          className="object-cover"
+                          sizes="40px"
+                        />
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                       <button onClick={() => setEditing(product)} className="text-amber-600 hover:text-amber-800 font-medium">
