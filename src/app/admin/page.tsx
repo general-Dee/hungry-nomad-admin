@@ -12,7 +12,7 @@ import {
   ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 
-// Dynamically import SalesChart with SSR disabled to prevent mobile client-side errors
+// Dynamically import SalesChart with SSR disabled
 const SalesChart = dynamic(() => import('@/components/admin/SalesChart'), { ssr: false });
 
 export default function AdminDashboard() {
