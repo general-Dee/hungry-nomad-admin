@@ -4,13 +4,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAdminAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { supabase } from '@/lib/supabaseClient';
-import SalesChart from '@/components/admin/SalesChart';
+import dynamic from 'next/dynamic';
 import {
   CurrencyDollarIcon,
   ShoppingCartIcon,
   ClipboardDocumentListIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline';
+
+// Dynamically import SalesChart with SSR disabled to prevent mobile client-side errors
+const SalesChart = dynamic(() => import('@/components/admin/SalesChart'), { ssr: false });
 
 export default function AdminDashboard() {
   const { login, isAuthenticated } = useAdminAuth();
