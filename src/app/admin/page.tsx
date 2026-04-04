@@ -59,7 +59,8 @@ export default function AdminDashboard() {
         fetchStats();
         const newOrder = payload.new as any;
         showToast(`New order #${newOrder.id} from ${newOrder.customer_name} – ₦${newOrder.total_amount.toLocaleString()}`, 'success');
-        if (Notification.permission === 'granted') {
+        // Safely check for Notification API
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
           new Notification('New order received!', {
             body: `${newOrder.customer_name} – ₦${newOrder.total_amount.toLocaleString()}`,
           });
@@ -68,7 +69,10 @@ export default function AdminDashboard() {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => fetchStats())
       .subscribe();
 
-    if (Notification.permission === 'default') Notification.requestPermission();
+    // Request permission safely
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
     return () => { supabase.removeChannel(channel); };
   }, [isAuthenticated, fetchStats, showToast]);
 
