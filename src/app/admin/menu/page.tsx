@@ -12,6 +12,7 @@ interface Product {
   description: string;
   price: number;
   category: string;
+  subcategory?: string;  // new field
   image_url: string;
 }
 
@@ -22,6 +23,13 @@ const categories = [
   { value: 'icecream', label: 'Ice Cream', emoji: '🍦' },
 ];
 
+// Subcategory options (only for fast food)
+const subcategories = [
+  { value: '', label: 'None' },
+  { value: 'grills', label: 'Grills' },
+  // Add more later: 'burgers', 'chicken', 'fries', etc.
+];
+
 export default function MenuPage() {
   const { isAuthenticated } = useAdminAuth();
   const router = useRouter();
@@ -29,6 +37,8 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Product | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
 
   useEffect(() => {
     if (!isAuthenticated) router.push('/admin');
@@ -69,28 +79,6 @@ export default function MenuPage() {
 
     return publicUrlData.publicUrl;
   }
-
-  async function saveProduct(product: Partial<Product>) {
-    try {
-      let imageUrl = product.image_url;
-      // If a file is selected (editing contains a File object, we need to handle separately)
-      // We'll store the file in a temporary state – we'll add a file input state later.
-      // For simplicity, we'll handle upload inside the modal.
-      if (product.id) {
-        await supabase.from('products').update(product).eq('id', product.id);
-      } else {
-        await supabase.from('products').insert(product);
-      }
-      setEditing(null);
-      fetchProducts();
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'An error occurred');
-    }
-  }
-
-  // We'll rework the modal to include file upload
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -137,7 +125,7 @@ export default function MenuPage() {
           <p className="text-gray-500 mt-1">Manage your restaurant menu</p>
         </div>
         <button
-          onClick={() => setEditing({ id: 0, name: '', description: '', price: 0, category: 'fast_food', image_url: '' })}
+          onClick={() => setEditing({ id: 0, name: '', description: '', price: 0, category: 'fast_food', subcategory: '', image_url: '' })}
           className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-2 rounded-lg font-medium hover:opacity-90 transition shadow-sm"
         >
           + Add Product
@@ -171,7 +159,7 @@ export default function MenuPage() {
               />
               <select
                 value={editing.category}
-                onChange={(e) => setEditing({ ...editing, category: e.target.value })}
+                onChange={(e) => setEditing({ ...editing, category: e.target.value, subcategory: '' })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               >
                 {categories.map((cat) => (
@@ -180,6 +168,21 @@ export default function MenuPage() {
                   </option>
                 ))}
               </select>
+
+              {/* Subcategory – only for fast food */}
+              {editing.category === 'fast_food' && (
+                <select
+                  value={editing.subcategory || ''}
+                  onChange={(e) => setEditing({ ...editing, subcategory: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                >
+                  {subcategories.map((sub) => (
+                    <option key={sub.value} value={sub.value}>
+                      {sub.label}
+                    </option>
+                  ))}
+                </select>
+              )}
 
               {/* Image upload */}
               <div>
@@ -238,6 +241,7 @@ export default function MenuPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subcategory</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -250,6 +254,9 @@ export default function MenuPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₦{product.price.toLocaleString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {categories.find(c => c.value === product.category)?.emoji} {product.category}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {product.subcategory || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="relative w-10 h-10 rounded-full overflow-hidden">
