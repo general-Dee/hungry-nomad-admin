@@ -17,11 +17,24 @@ export default function DeliveryZonesPage() {
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<DeliveryZone | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
+  // Wait for auth state to be resolved
   useEffect(() => {
-    if (!isAuthenticated) router.push('/admin');
-    else fetchZones();
+    if (isAuthenticated !== undefined) {
+      setAuthChecked(true);
+      if (!isAuthenticated) {
+        router.replace('/admin');
+      }
+    }
   }, [isAuthenticated, router]);
+
+  // Fetch zones only after auth is confirmed
+  useEffect(() => {
+    if (authChecked && isAuthenticated) {
+      fetchZones();
+    }
+  }, [authChecked, isAuthenticated]);
 
   async function fetchZones() {
     const { data } = await supabase
@@ -53,7 +66,14 @@ export default function DeliveryZonesPage() {
     }
   }
 
-  if (!isAuthenticated) return null;
+  // Show nothing or a loader while checking auth
+  if (!authChecked) {
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return null; // will redirect via useEffect
+  }
 
   return (
     <div className="max-w-7xl mx-auto">
