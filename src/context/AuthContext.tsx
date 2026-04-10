@@ -6,6 +6,7 @@ const ADMIN_PASSWORD = 'hungrynomad2025';
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (password: string) => boolean;
   logout: () => void;
 }
@@ -20,10 +21,12 @@ export const useAdminAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const auth = sessionStorage.getItem('adminAuth');
-    if (auth === 'true') setIsAuthenticated(true);
+    setIsAuthenticated(auth === 'true');
+    setIsLoading(false);
   }, []);
 
   const login = (password: string) => {
@@ -41,7 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -12,31 +12,23 @@ interface DeliveryZone {
 }
 
 export default function DeliveryZonesPage() {
-  const { isAuthenticated } = useAdminAuth();
+  const { isAuthenticated, isLoading } = useAdminAuth();
   const router = useRouter();
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<DeliveryZone | null>(null);
-  const [authChecked, setAuthChecked] = useState(false);
 
-  // Wait for auth state to be resolved
   useEffect(() => {
-    if (isAuthenticated !== undefined) {
-      setAuthChecked(true);
-      if (!isAuthenticated) {
-        router.replace('/admin');
-      }
-    }
-  }, [isAuthenticated, router]);
-
-  // Fetch zones only after auth is confirmed
-  useEffect(() => {
-    if (authChecked && isAuthenticated) {
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      router.replace('/admin');
+    } else {
       fetchZones();
     }
-  }, [authChecked, isAuthenticated]);
+  }, [isAuthenticated, isLoading, router]);
 
   async function fetchZones() {
+    setLoading(true);
     const { data } = await supabase
       .from('delivery_zones')
       .select('*')
@@ -66,13 +58,12 @@ export default function DeliveryZonesPage() {
     }
   }
 
-  // Show nothing or a loader while checking auth
-  if (!authChecked) {
+  if (isLoading) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
   }
 
   if (!isAuthenticated) {
-    return null; // will redirect via useEffect
+    return null;
   }
 
   return (
@@ -104,8 +95,8 @@ export default function DeliveryZonesPage() {
               <input
                 type="number"
                 placeholder="Delivery Fee (₦)"
-                value={editing.fee}
-                onChange={(e) => setEditing({ ...editing, fee: parseInt(e.target.value) })}
+                value={editing.fee ?? 0}
+                onChange={(e) => setEditing({ ...editing, fee: parseInt(e.target.value) || 0 })}
                 className="w-full px-4 py-2 border rounded-lg"
               />
             </div>
