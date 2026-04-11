@@ -21,6 +21,7 @@ const categories = [
   { value: 'regular', label: 'Regular Dishes', emoji: '🍛' },
   { value: 'chinese', label: 'Chinese', emoji: '🥡' },
   { value: 'icecream', label: 'Ice Cream', emoji: '🍦' },
+  { value: 'beverages', label: 'Beverages', emoji: '🥤' },
 ];
 
 const subcategories = [
