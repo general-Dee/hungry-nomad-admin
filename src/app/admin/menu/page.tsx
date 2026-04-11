@@ -26,6 +26,7 @@ const categories = [
 const subcategories = [
   { value: '', label: 'None' },
   { value: 'grills', label: 'Grills' },
+  { value: 'shawarma', label: 'Shawarma / Wraps' },
 ];
 
 export default function MenuPage() {
@@ -38,14 +39,12 @@ export default function MenuPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace('/admin');
     }
   }, [isAuthenticated, isLoading, router]);
 
-  // Fetch products and subscribe to realtime changes
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -61,16 +60,11 @@ export default function MenuPage() {
 
     fetchProducts();
 
-    // Subscribe to changes in the products table
     const channel = supabase
       .channel('menu-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'products' },
-        () => {
-          fetchProducts(); // refetch when any change occurs
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        fetchProducts();
+      })
       .subscribe();
 
     return () => {
@@ -81,7 +75,6 @@ export default function MenuPage() {
   async function deleteProduct(id: number) {
     if (confirm('Delete this item?')) {
       await supabase.from('products').delete().eq('id', id);
-      // No need to call fetchProducts manually – realtime will trigger it
     }
   }
 
@@ -134,7 +127,6 @@ export default function MenuPage() {
       setEditing(null);
       setImageFile(null);
       setPreviewUrl('');
-      // Realtime will auto-refresh, but we can also manually refetch for immediate feedback
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -318,7 +310,7 @@ export default function MenuPage() {
                         Delete
                       </button>
                     </td>
-                  <tr>
+                  </tr>
                 ))}
               </tbody>
             </table>
