@@ -12,7 +12,7 @@ interface Product {
   description: string;
   price: number;
   category: string;
-  subcategory?: string;  // new field
+  subcategory?: string;
   image_url: string;
 }
 
@@ -23,15 +23,13 @@ const categories = [
   { value: 'icecream', label: 'Ice Cream', emoji: '🍦' },
 ];
 
-// Subcategory options (only for fast food)
 const subcategories = [
   { value: '', label: 'None' },
   { value: 'grills', label: 'Grills' },
-  // Add more later: 'burgers', 'chicken', 'fries', etc.
 ];
 
 export default function MenuPage() {
-  const { isAuthenticated } = useAdminAuth();
+  const { isAuthenticated, isLoading } = useAdminAuth();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,28 +38,57 @@ export default function MenuPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
 
+  // Redirect if not authenticated
   useEffect(() => {
-    if (!isAuthenticated) router.push('/admin');
-    else fetchProducts();
-  }, [isAuthenticated, router]);
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/admin');
+    }
+  }, [isAuthenticated, isLoading, router]);
 
-  async function fetchProducts() {
-    const { data } = await supabase.from('products').select('*').order('name');
-    setProducts(data || []);
-    setLoading(false);
-  }
+  // Fetch products and subscribe to realtime changes
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const fetchProducts = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .order('name');
+      setProducts(data || []);
+      setLoading(false);
+    };
+
+    fetchProducts();
+
+    // Subscribe to changes in the products table
+    const channel = supabase
+      .channel('menu-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        () => {
+          fetchProducts(); // refetch when any change occurs
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAuthenticated]);
 
   async function deleteProduct(id: number) {
     if (confirm('Delete this item?')) {
       await supabase.from('products').delete().eq('id', id);
-      fetchProducts();
+      // No need to call fetchProducts manually – realtime will trigger it
     }
   }
 
   async function uploadImage(file: File): Promise<string | null> {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `${fileName}`;
+    const filePath = fileName;
 
     const { error } = await supabase.storage
       .from('product-images')
@@ -107,7 +134,7 @@ export default function MenuPage() {
       setEditing(null);
       setImageFile(null);
       setPreviewUrl('');
-      fetchProducts();
+      // Realtime will auto-refresh, but we can also manually refetch for immediate feedback
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -115,7 +142,13 @@ export default function MenuPage() {
     }
   };
 
-  if (!isAuthenticated) return null;
+  if (isLoading) {
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -125,7 +158,17 @@ export default function MenuPage() {
           <p className="text-gray-500 mt-1">Manage your restaurant menu</p>
         </div>
         <button
-          onClick={() => setEditing({ id: 0, name: '', description: '', price: 0, category: 'fast_food', subcategory: '', image_url: '' })}
+          onClick={() =>
+            setEditing({
+              id: 0,
+              name: '',
+              description: '',
+              price: 0,
+              category: 'fast_food',
+              subcategory: '',
+              image_url: '',
+            })
+          }
           className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-2 rounded-lg font-medium hover:opacity-90 transition shadow-sm"
         >
           + Add Product
@@ -154,7 +197,7 @@ export default function MenuPage() {
                 type="number"
                 placeholder="Price (₦)"
                 value={editing.price}
-                onChange={(e) => setEditing({ ...editing, price: parseInt(e.target.value) })}
+                onChange={(e) => setEditing({ ...editing, price: parseInt(e.target.value) || 0 })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
               <select
@@ -169,7 +212,6 @@ export default function MenuPage() {
                 ))}
               </select>
 
-              {/* Subcategory – only for fast food */}
               {editing.category === 'fast_food' && (
                 <select
                   value={editing.subcategory || ''}
@@ -184,7 +226,6 @@ export default function MenuPage() {
                 </select>
               )}
 
-              {/* Image upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
                 <input
@@ -277,7 +318,7 @@ export default function MenuPage() {
                         Delete
                       </button>
                     </td>
-                  </tr>
+                  <tr>
                 ))}
               </tbody>
             </table>
