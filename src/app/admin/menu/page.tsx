@@ -28,6 +28,7 @@ const subcategories = [
   { value: '', label: 'None' },
   { value: 'grills', label: 'Grills' },
   { value: 'shawarma', label: 'Shawarma / Wraps' },
+  { value: 'fries', label: 'Fries' },
 ];
 
 export default function MenuPage() {
