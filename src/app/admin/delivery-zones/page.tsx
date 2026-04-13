@@ -70,8 +70,8 @@ export default function DeliveryZonesPage() {
     <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Delivery Zones (LGA)</h1>
-          <p className="text-gray-500 mt-1">Manage delivery fees by Local Government Area</p>
+        <h1 className="text-3xl font-bold text-gray-900">Delivery Areas (LGA)</h1>
+        <p className="text-gray-500 mt-1">Manage delivery fees by Local Government Area</p>
         </div>
         <button
           onClick={() => setEditing({ id: 0, lga_name: '', fee: 0 })}

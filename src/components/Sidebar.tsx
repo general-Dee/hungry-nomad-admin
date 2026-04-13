@@ -19,7 +19,7 @@ const navigation = [
   { name: 'Dashboard', href: '/admin', icon: HomeIcon },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingBagIcon },
   { name: 'Menu', href: '/admin/menu', icon: CakeIcon },
-  { name: 'Delivery Zones', href: '/admin/delivery-zones', icon: MapIcon },
+  { name: 'Delivery Areas', href: '/admin/delivery-zones', icon: MapIcon },
 ];
 
 export default function Sidebar() {
