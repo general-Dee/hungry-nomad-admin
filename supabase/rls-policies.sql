@@ -3,12 +3,21 @@
 -- This repo has no Supabase CLI/migrations set up, so this file is NOT applied
 -- automatically. Run it manually in the Supabase Dashboard > SQL Editor.
 --
--- CAVEAT: this only accounts for what the admin app (this repo) needs. If the
--- separate customer-facing app reads order status/confirmation back via the
--- anon key (e.g. an order-tracking page), the `orders` SELECT restriction
--- below will break that flow -- it would need a different mechanism (a
--- server-side route with a scoped lookup, not broad anon SELECT). Review
--- against the customer app before running this.
+-- Reviewed against the separate customer-facing app (hungry-nomad) --
+-- specifically hungry-nomad/docs/sql/enable-rls.sql and
+-- hungry-nomad/docs/PLATFORM-CONTRACT.md sec7. That app creates, reads, and
+-- updates `orders`/`order_items` exclusively through its own server-only
+-- service-role client (src/lib/supabaseAdmin.ts), which bypasses RLS
+-- entirely and never touches the anon key -- so the `authenticated`-only
+-- restrictions below do not break its checkout/track/verify-payment flows.
+-- Its own script enables RLS on `orders`/`order_items` as default-deny for
+-- `anon` (zero policies granted), on purpose: anon order creation would let
+-- anyone POST an arbitrary total_amount straight to Supabase's REST API,
+-- bypassing that app's server-derived pricing and Paystack verification.
+-- This file must not grant `anon`/`public` any access to `orders` for the
+-- same reason -- this admin app only ever needs the `authenticated` role,
+-- since admins sign in via Supabase Auth and act as that role once logged
+-- in.
 
 alter table public.products enable row level security;
 alter table public.delivery_zones enable row level security;
@@ -34,10 +43,12 @@ create policy "Admins can update delivery zones" on public.delivery_zones
 create policy "Admins can delete delivery zones" on public.delivery_zones
   for delete to authenticated using (true);
 
--- orders: customers can create an order anonymously, but only admins can
--- read the order list (contains customer name/phone), change status, or delete.
-create policy "Anyone can create an order" on public.orders
-  for insert with check (true);
+-- orders: no anon/public policy of any kind. Order creation is handled
+-- exclusively by the customer-facing app's service-role client (see header
+-- comment) -- this repo must not grant INSERT to anon/public here, or it
+-- reopens the price-tampering hole that app's RLS setup deliberately closes.
+-- Only admins (authenticated, via Supabase Auth) get any access to this
+-- table from this repo: viewing the order list, changing status, or deleting.
 create policy "Admins can view orders" on public.orders
   for select to authenticated using (true);
 create policy "Admins can update orders" on public.orders
