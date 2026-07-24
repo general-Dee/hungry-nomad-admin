@@ -23,16 +23,20 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 };
 
 export default function OrdersPage() {
-  const { isAuthenticated } = useAdminAuth();
+  const { isAuthenticated, isLoading } = useAdminAuth();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (!isAuthenticated) router.push('/admin');
-    else fetchOrders();
-  }, [isAuthenticated, router]);
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      router.replace('/admin');
+    } else {
+      fetchOrders();
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   async function fetchOrders() {
     const { data, error } = await supabase
@@ -74,6 +78,10 @@ export default function OrdersPage() {
     order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.customer_phone.includes(searchTerm)
   );
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  }
 
   if (!isAuthenticated) return null;
 

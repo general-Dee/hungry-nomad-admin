@@ -1,8 +1,9 @@
 ﻿'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAdminAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -33,6 +34,7 @@ const subcategories = [
 
 export default function MenuPage() {
   const { isAuthenticated, isLoading } = useAdminAuth();
+  const { showToast } = useToast();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,18 +49,21 @@ export default function MenuPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('name');
+    if (error) {
+      showToast(`Failed to load menu items: ${error.message}`, 'error');
+    }
+    setProducts(data || []);
+    setLoading(false);
+  }, [showToast]);
+
   useEffect(() => {
     if (!isAuthenticated) return;
-
-    const fetchProducts = async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from('products')
-        .select('*')
-        .order('name');
-      setProducts(data || []);
-      setLoading(false);
-    };
 
     fetchProducts();
 
@@ -72,12 +77,17 @@ export default function MenuPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, fetchProducts]);
 
   async function deleteProduct(id: number) {
-    if (confirm('Delete this item?')) {
-      await supabase.from('products').delete().eq('id', id);
+    if (!confirm('Delete this item?')) return;
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) {
+      showToast(`Failed to delete product: ${error.message}`, 'error');
+      return;
     }
+    showToast('Product deleted', 'success');
+    fetchProducts();
   }
 
   async function uploadImage(file: File): Promise<string | null> {
@@ -90,8 +100,7 @@ export default function MenuPage() {
       .upload(filePath, file);
 
     if (error) {
-      console.error('Upload error:', error);
-      alert('Failed to upload image');
+      showToast(`Failed to upload image: ${error.message}`, 'error');
       return null;
     }
 
@@ -114,26 +123,29 @@ export default function MenuPage() {
   const handleSaveWithUpload = async () => {
     if (!editing) return;
     setUploading(true);
-    try {
-      let finalImageUrl = editing.image_url;
-      if (imageFile) {
-        const uploadedUrl = await uploadImage(imageFile);
-        if (uploadedUrl) finalImageUrl = uploadedUrl;
+    let finalImageUrl = editing.image_url;
+    if (imageFile) {
+      const uploadedUrl = await uploadImage(imageFile);
+      if (!uploadedUrl) {
+        setUploading(false);
+        return;
       }
-      const productToSave = { ...editing, image_url: finalImageUrl };
-      if (productToSave.id) {
-        await supabase.from('products').update(productToSave).eq('id', productToSave.id);
-      } else {
-        await supabase.from('products').insert(productToSave);
-      }
-      setEditing(null);
-      setImageFile(null);
-      setPreviewUrl('');
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setUploading(false);
+      finalImageUrl = uploadedUrl;
     }
+    const productToSave = { ...editing, image_url: finalImageUrl };
+    const { error } = productToSave.id
+      ? await supabase.from('products').update(productToSave).eq('id', productToSave.id)
+      : await supabase.from('products').insert(productToSave);
+    setUploading(false);
+    if (error) {
+      showToast(`Failed to save product: ${error.message}`, 'error');
+      return;
+    }
+    showToast('Product saved', 'success');
+    setEditing(null);
+    setImageFile(null);
+    setPreviewUrl('');
+    fetchProducts();
   };
 
   if (isLoading) {

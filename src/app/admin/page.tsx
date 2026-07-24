@@ -18,27 +18,29 @@ const SalesChart = dynamic(() => import('@/components/admin/SalesChart'), { ssr:
 export default function AdminDashboard() {
   const { login, isAuthenticated } = useAdminAuth();
   const { showToast } = useToast();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   const fetchStats = useCallback(async () => {
-    const { count: pending } = await supabase
+    const { count: pending, error: pendingError } = await supabase
       .from('orders')
       .select('*', { count: 'exact', head: true })
       .in('status', ['pending', 'paid']);
     setPendingCount(pending || 0);
 
-    const { count: totalOrd } = await supabase
+    const { count: totalOrd, error: totalError } = await supabase
       .from('orders')
       .select('*', { count: 'exact', head: true });
     setTotalOrders(totalOrd || 0);
 
     const today = new Date().toISOString().split('T')[0];
-    const { data: todayOrders } = await supabase
+    const { data: todayOrders, error: todayError } = await supabase
       .from('orders')
       .select('total_amount')
       .eq('status', 'paid')
@@ -47,7 +49,13 @@ export default function AdminDashboard() {
     const total = todayOrders?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
     setTotalRevenue(total);
     setLastUpdated(new Date());
-  }, []);
+
+    const firstError = pendingError || totalError || todayError;
+    if (firstError) {
+      console.error('Failed to fetch dashboard stats:', firstError);
+      showToast('Failed to refresh some dashboard stats', 'error');
+    }
+  }, [showToast]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -77,10 +85,12 @@ export default function AdminDashboard() {
   }, [isAuthenticated, fetchStats, showToast]);
 
   if (!isAuthenticated) {
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (login(password)) setError('');
-      else setError('Wrong password');
+      setIsSubmitting(true);
+      const loginError = await login(email, password);
+      setIsSubmitting(false);
+      setError(loginError ?? '');
     };
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -93,20 +103,34 @@ export default function AdminDashboard() {
             <p className="mt-1 text-sm text-gray-500">Sign in to manage your restaurant</p>
           </div>
           <form onSubmit={handleSubmit}>
+            <label htmlFor="admin-email" className="sr-only">Email</label>
             <input
+              id="admin-email"
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-4 py-3 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
+              autoFocus
+              autoComplete="username"
+            />
+            <label htmlFor="admin-password" className="sr-only">Password</label>
+            <input
+              id="admin-password"
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-4 py-3 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
-              autoFocus
+              className="mt-3 w-full rounded-lg border border-gray-200 px-4 py-3 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
+              autoComplete="current-password"
             />
             {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
             <button
               type="submit"
-              className="mt-4 w-full rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 py-3 font-medium text-white transition hover:opacity-90"
+              disabled={isSubmitting}
+              className="mt-4 w-full rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-60"
             >
-              Sign In
+              {isSubmitting ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
         </div>

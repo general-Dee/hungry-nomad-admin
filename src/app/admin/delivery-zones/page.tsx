@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAdminAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import { useRouter } from 'next/navigation';
 
 interface DeliveryZone {
@@ -13,6 +14,7 @@ interface DeliveryZone {
 
 export default function DeliveryZonesPage() {
   const { isAuthenticated, isLoading } = useAdminAuth();
+  const { showToast } = useToast();
   const router = useRouter();
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,33 +31,39 @@ export default function DeliveryZonesPage() {
 
   async function fetchZones() {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('delivery_zones')
       .select('*')
       .order('lga_name');
+    if (error) {
+      showToast(`Failed to load delivery zones: ${error.message}`, 'error');
+    }
     setZones(data || []);
     setLoading(false);
   }
 
   async function deleteZone(id: number) {
-    if (confirm('Delete this delivery zone?')) {
-      await supabase.from('delivery_zones').delete().eq('id', id);
-      fetchZones();
+    if (!confirm('Delete this delivery zone?')) return;
+    const { error } = await supabase.from('delivery_zones').delete().eq('id', id);
+    if (error) {
+      showToast(`Failed to delete zone: ${error.message}`, 'error');
+      return;
     }
+    showToast('Delivery zone deleted', 'success');
+    fetchZones();
   }
 
   async function saveZone(zone: Partial<DeliveryZone>) {
-    try {
-      if (zone.id) {
-        await supabase.from('delivery_zones').update(zone).eq('id', zone.id);
-      } else {
-        await supabase.from('delivery_zones').insert(zone);
-      }
-      setEditing(null);
-      fetchZones();
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'An error occurred');
+    const { error } = zone.id
+      ? await supabase.from('delivery_zones').update(zone).eq('id', zone.id)
+      : await supabase.from('delivery_zones').insert(zone);
+    if (error) {
+      showToast(`Failed to save zone: ${error.message}`, 'error');
+      return;
     }
+    showToast('Delivery zone saved', 'success');
+    setEditing(null);
+    fetchZones();
   }
 
   if (isLoading) {

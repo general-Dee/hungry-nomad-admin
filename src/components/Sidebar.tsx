@@ -31,10 +31,14 @@ export default function Sidebar() {
 
   useEffect(() => {
     const fetchPending = async () => {
-      const { count } = await supabase
+      const { count, error } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
         .in('status', ['pending', 'paid']);
+      if (error) {
+        console.error('Failed to fetch pending order count:', error);
+        return;
+      }
       setPendingCount(count || 0);
     };
     fetchPending();
@@ -47,8 +51,8 @@ export default function Sidebar() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push('/admin');
   };
 
