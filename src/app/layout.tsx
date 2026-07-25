@@ -17,8 +17,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       console.error('Global error:', event.error);
       alert(`Error: ${event.error?.message || 'Unknown error'}`);
     };
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled rejection:', event.reason);
+      alert(`Error: ${event.reason?.message || 'Unknown error'}`);
+    };
     window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleRejection);
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
   }, []);
 
   return (

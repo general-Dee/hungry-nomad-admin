@@ -6,19 +6,19 @@ import { useAdminAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useRouter } from 'next/navigation';
 
-interface DeliveryZone {
+interface DeliveryArea {
   id: number;
   lga_name: string;
   fee: number;
 }
 
-export default function DeliveryZonesPage() {
+export default function DeliveryAreasPage() {
   const { isAuthenticated, isLoading } = useAdminAuth();
   const { showToast } = useToast();
   const router = useRouter();
-  const [zones, setZones] = useState<DeliveryZone[]>([]);
+  const [zones, setZones] = useState<DeliveryArea[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<DeliveryZone | null>(null);
+  const [editing, setEditing] = useState<DeliveryArea | null>(null);
 
   useEffect(() => {
     if (isLoading) return;
@@ -53,7 +53,7 @@ export default function DeliveryZonesPage() {
     fetchZones();
   }
 
-  async function saveZone(zone: Partial<DeliveryZone>) {
+  async function saveZone(zone: Partial<DeliveryArea>) {
     const { error } = zone.id
       ? await supabase.from('delivery_zones').update(zone).eq('id', zone.id)
       : await supabase.from('delivery_zones').insert(zone);

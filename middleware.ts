@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
-const PROTECTED_SUB_PATHS = ['/admin/orders', '/admin/menu', '/admin/delivery-zones'];
+const PROTECTED_SUB_PATHS = ['/admin/orders', '/admin/menu', '/admin/delivery-areas'];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });

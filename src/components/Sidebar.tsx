@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAdminAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import {
@@ -11,6 +12,8 @@ import {
   CakeIcon,
   MapIcon,
   ArrowLeftOnRectangleIcon,
+  KeyIcon,
+  UserPlusIcon,
   Bars3Icon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
@@ -19,15 +22,23 @@ const navigation = [
   { name: 'Dashboard', href: '/admin', icon: HomeIcon },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingBagIcon },
   { name: 'Menu', href: '/admin/menu', icon: CakeIcon },
-  { name: 'Delivery Areas', href: '/admin/delivery-zones', icon: MapIcon },
+  { name: 'Delivery Areas', href: '/admin/delivery-areas', icon: MapIcon },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAdminAuth();
+  const { showToast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const [inviting, setInviting] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchPending = async () => {
@@ -54,6 +65,58 @@ export default function Sidebar() {
   const handleLogout = async () => {
     await logout();
     router.push('/admin');
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      showToast('Passwords do not match', 'error');
+      return;
+    }
+    if (newPassword.length < 6) {
+      showToast('Password must be at least 6 characters', 'error');
+      return;
+    }
+    setPasswordSubmitting(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        showToast(`Failed to change password: ${error.message}`, 'error');
+        return;
+      }
+      showToast('Password updated', 'success');
+      setChangingPassword(false);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      showToast(`Failed to change password: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
+    } finally {
+      setPasswordSubmitting(false);
+    }
+  };
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInviteSubmitting(true);
+    try {
+      const res = await fetch('/api/admin/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(`Failed to invite admin: ${data.error || 'Unknown error'}`, 'error');
+        return;
+      }
+      showToast('Invite sent', 'success');
+      setInviting(false);
+      setInviteEmail('');
+    } catch (err) {
+      showToast(`Failed to invite admin: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
+    } finally {
+      setInviteSubmitting(false);
+    }
   };
 
   return (
@@ -124,8 +187,22 @@ export default function Sidebar() {
             })}
           </nav>
 
-          {/* Logout button */}
-          <div className="border-t border-gray-100 p-4">
+          {/* Invite admin / Change password / Logout */}
+          <div className="border-t border-gray-100 p-4 space-y-1">
+            <button
+              onClick={() => setInviting(true)}
+              className="flex w-full items-center space-x-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
+            >
+              <UserPlusIcon className="h-5 w-5" />
+              <span>Invite Admin</span>
+            </button>
+            <button
+              onClick={() => setChangingPassword(true)}
+              className="flex w-full items-center space-x-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
+            >
+              <KeyIcon className="h-5 w-5" />
+              <span>Change Password</span>
+            </button>
             <button
               onClick={handleLogout}
               className="flex w-full items-center space-x-3 rounded-xl px-4 py-3 text-sm font-medium text-red-600 transition-all hover:bg-red-50"
@@ -143,6 +220,95 @@ export default function Sidebar() {
           className="fixed inset-0 z-30 bg-black/50 lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
+      )}
+
+      {/* Change password modal */}
+      {changingPassword && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-xl font-bold mb-4">Change Password</h2>
+            <form onSubmit={handleChangePassword}>
+              <div className="space-y-4">
+                <input
+                  type="password"
+                  placeholder="New password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  autoComplete="new-password"
+                  autoFocus
+                />
+                <input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="submit"
+                  disabled={passwordSubmitting}
+                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg disabled:opacity-60"
+                >
+                  {passwordSubmitting ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChangingPassword(false);
+                    setNewPassword('');
+                    setConfirmPassword('');
+                  }}
+                  className="flex-1 bg-gray-200 py-2 rounded-lg"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Invite admin modal */}
+      {inviting && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-xl font-bold mb-4">Invite Admin</h2>
+            <form onSubmit={handleInvite}>
+              <input
+                type="email"
+                placeholder="Email address"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg"
+                autoFocus
+                required
+              />
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="submit"
+                  disabled={inviteSubmitting}
+                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg disabled:opacity-60"
+                >
+                  {inviteSubmitting ? 'Sending...' : 'Send Invite'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInviting(false);
+                    setInviteEmail('');
+                  }}
+                  className="flex-1 bg-gray-200 py-2 rounded-lg"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </>
   );
