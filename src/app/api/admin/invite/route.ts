@@ -39,10 +39,15 @@ export async function POST(request: Request) {
     email,
     options: { redirectTo: `${origin}/admin` },
   });
-  if (linkError || !linkData?.properties?.action_link) {
+  if (linkError || !linkData?.properties?.hashed_token) {
     return NextResponse.json({ error: linkError?.message || 'Failed to generate invite link' }, { status: 400 });
   }
-  const actionLink = linkData.properties.action_link;
+  // Don't email the raw action_link -- mail providers (Gmail, corporate
+  // proxies) auto-prefetch links in incoming email for phishing scanning,
+  // which silently consumes the single-use token before the real user ever
+  // clicks. Link to our own confirmation page instead; it only exchanges
+  // the token on an actual button click.
+  const confirmUrl = `${origin}/admin/accept-invite?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}`;
 
   const fromAddress = process.env.RESEND_FROM_EMAIL;
   if (!process.env.RESEND_API_KEY || !fromAddress) {
@@ -59,7 +64,7 @@ export async function POST(request: Request) {
       from: fromAddress,
       to: email,
       subject: "You've been invited to Hungry Nomad Admin",
-      html: `<p>You've been invited to join the Hungry Nomad admin panel.</p><p><a href="${actionLink}">Accept the invite</a></p>`,
+      html: `<p>You've been invited to join the Hungry Nomad admin panel.</p><p><a href="${confirmUrl}">Accept the invite</a></p>`,
     }),
   });
   const resendData = await resendRes.json().catch(() => null);
