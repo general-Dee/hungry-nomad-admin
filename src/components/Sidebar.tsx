@@ -14,6 +14,7 @@ import {
   ArrowLeftOnRectangleIcon,
   KeyIcon,
   UserPlusIcon,
+  EnvelopeIcon,
   Bars3Icon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Orders', href: '/admin/orders', icon: ShoppingBagIcon },
   { name: 'Menu', href: '/admin/menu', icon: CakeIcon },
   { name: 'Delivery Areas', href: '/admin/delivery-areas', icon: MapIcon },
+  { name: 'Admin Invites', href: '/admin/invites', icon: EnvelopeIcon },
 ];
 
 export default function Sidebar() {
