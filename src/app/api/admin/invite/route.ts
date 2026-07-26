@@ -40,6 +40,9 @@ export async function POST(request: Request) {
     options: { redirectTo: `${origin}/admin` },
   });
   if (linkError || !linkData?.properties?.hashed_token) {
+    if (linkError?.code === 'email_exists') {
+      return NextResponse.json({ error: 'This person already has admin access.' }, { status: 409 });
+    }
     return NextResponse.json({ error: linkError?.message || 'Failed to generate invite link' }, { status: 400 });
   }
   // Don't email the raw action_link -- mail providers (Gmail, corporate
