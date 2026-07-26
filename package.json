@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/check-env.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -19,6 +20,7 @@
     "svix": "^1.99.1"
   },
   "devDependencies": {
+    "@next/env": "14.2.35",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

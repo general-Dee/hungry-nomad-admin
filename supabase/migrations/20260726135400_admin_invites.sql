@@ -1,8 +1,8 @@
+-- ALREADY APPLIED (see supabase/migrations/README.md for the convention).
+--
 -- admin_invites: tracks Resend email delivery status for admin-invite emails,
 -- since Supabase's own built-in mailer (auth.admin.inviteUserByEmail) has no
--- delivery-tracking webhooks. This repo has no Supabase CLI/migrations set up
--- (see supabase/rls-policies.sql header) -- run this manually in the
--- Supabase Dashboard > SQL Editor.
+-- delivery-tracking webhooks.
 --
 -- Rows are written exclusively by this repo's server-side service-role
 -- client: src/app/api/admin/invite/route.ts (insert on send) and

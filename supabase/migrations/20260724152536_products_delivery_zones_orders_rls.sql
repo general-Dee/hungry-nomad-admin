@@ -1,7 +1,9 @@
--- Row Level Security policies for hungry-nomad-admin's Supabase tables.
+-- ALREADY APPLIED (retroactively catalogued as a migration -- see
+-- supabase/migrations/README.md). This repo has no Supabase CLI wired up, so
+-- migrations here are not auto-applied; each is pasted into the Supabase
+-- Dashboard > SQL Editor once, then committed here as the permanent record.
 --
--- This repo has no Supabase CLI/migrations set up, so this file is NOT applied
--- automatically. Run it manually in the Supabase Dashboard > SQL Editor.
+-- Row Level Security policies for hungry-nomad-admin's Supabase tables.
 --
 -- Reviewed against the separate customer-facing app (hungry-nomad) --
 -- specifically hungry-nomad/docs/sql/enable-rls.sql and
