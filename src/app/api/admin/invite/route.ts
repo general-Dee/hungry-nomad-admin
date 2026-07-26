@@ -30,10 +30,14 @@ export async function POST(request: Request) {
 
   // Create the invited user and get the action link, without letting
   // Supabase's own mailer send anything -- we send via Resend instead so
-  // delivery status is trackable.
+  // delivery status is trackable. redirectTo must be set explicitly: this
+  // Supabase project is shared with the customer-facing app, so its default
+  // Site URL points there, not here.
+  const origin = new URL(request.url).origin;
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: 'invite',
     email,
+    options: { redirectTo: `${origin}/admin` },
   });
   if (linkError || !linkData?.properties?.action_link) {
     return NextResponse.json({ error: linkError?.message || 'Failed to generate invite link' }, { status: 400 });
