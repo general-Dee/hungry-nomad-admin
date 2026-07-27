@@ -3,10 +3,12 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function POST(request: Request) {
   const { email } = await request.json();
-  if (!email || typeof email !== 'string') {
-    return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+  if (!email || typeof email !== 'string' || !EMAIL_REGEX.test(email)) {
+    return NextResponse.json({ error: 'A valid email is required' }, { status: 400 });
   }
 
   const cookieStore = cookies();
@@ -24,6 +26,11 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const fromAddress = process.env.RESEND_FROM_EMAIL;
+  if (!process.env.RESEND_API_KEY || !fromAddress) {
+    return NextResponse.json({ error: 'Resend is not configured' }, { status: 500 });
   }
 
   const admin = getSupabaseAdmin();
@@ -51,11 +58,6 @@ export async function POST(request: Request) {
   // clicks. Link to our own confirmation page instead; it only exchanges
   // the token on an actual button click.
   const confirmUrl = `${origin}/admin/accept-invite?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}`;
-
-  const fromAddress = process.env.RESEND_FROM_EMAIL;
-  if (!process.env.RESEND_API_KEY || !fromAddress) {
-    return NextResponse.json({ error: 'Resend is not configured' }, { status: 500 });
-  }
 
   const resendRes = await fetch('https://api.resend.com/emails', {
     method: 'POST',

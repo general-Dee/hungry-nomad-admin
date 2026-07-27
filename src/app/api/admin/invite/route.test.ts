@@ -61,6 +61,11 @@ describe('POST /api/admin/invite', () => {
     expect(response.status).toBe(400);
   });
 
+  it('returns 400 when email is not a valid format', async () => {
+    const response = await POST(makeRequest({ email: 'not-an-email' }));
+    expect(response.status).toBe(400);
+  });
+
   it('returns 401 when unauthenticated, without generating an invite link', async () => {
     getUser.mockResolvedValue({ data: { user: null } });
 
@@ -123,20 +128,16 @@ describe('POST /api/admin/invite', () => {
     expect(await response.json()).toEqual({ error: 'something else broke' });
   });
 
-  it('returns 500 when Resend is not configured, after the invite link has already been created', async () => {
+  it('returns 500 when Resend is not configured, without creating an invite link', async () => {
     authenticate();
     delete process.env.RESEND_API_KEY;
-    supabaseAdminMock.auth.admin.generateLink.mockResolvedValue({
-      data: { properties: { hashed_token: 'tok-abc123' } },
-      error: null,
-    });
 
     const response = await POST(makeRequest({ email: 'new-admin@example.com' }));
 
     expect(response.status).toBe(500);
-    // The Supabase invited user was already created by this point -- this
-    // pins the existing orphaned-user gap as documented behavior.
-    expect(supabaseAdminMock.auth.admin.generateLink).toHaveBeenCalled();
+    // The config check now runs before generateLink, so a misconfigured
+    // server doesn't leave an orphaned invited user with no email ever sent.
+    expect(supabaseAdminMock.auth.admin.generateLink).not.toHaveBeenCalled();
   });
 
   it('records a failed invite row when the Resend API call is not ok', async () => {
