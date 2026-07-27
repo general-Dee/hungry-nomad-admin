@@ -97,7 +97,15 @@ export async function POST(request: Request) {
     status: 'sent',
   });
   if (insertError) {
+    // The email genuinely went out and the invited user can still accept it
+    // -- this isn't a failure of the invite itself, just of our own delivery
+    // tracking, so don't report an error. Do surface a warning though, since
+    // this invite won't show up in the invites list until that's fixed.
     console.error('Failed to record admin_invites row', insertError);
+    return NextResponse.json({
+      success: true,
+      warning: 'Invite email sent, but its status could not be recorded and it may not appear in the invites list.',
+    });
   }
 
   return NextResponse.json({ success: true });

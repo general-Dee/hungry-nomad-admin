@@ -159,7 +159,7 @@ describe('POST /api/admin/invite', () => {
     );
   });
 
-  it('BUG(tracked): still reports success when the admin_invites insert fails silently', async () => {
+  it('reports success with a warning when the admin_invites insert fails', async () => {
     authenticate();
     supabaseAdminMock.auth.admin.generateLink.mockResolvedValue({
       data: { properties: { hashed_token: 'tok-abc123' } },
@@ -174,11 +174,14 @@ describe('POST /api/admin/invite', () => {
 
     const response = await POST(makeRequest({ email: 'new-admin@example.com' }));
 
-    // Known bug: the email already went out and the invite link is real, so
-    // the handler still reports success even though the admin_invites
-    // tracking row was never written. See route.ts insertError handling.
+    // The invite email genuinely went out and can still be accepted, so this
+    // isn't reported as a failure -- but the caller does get a warning since
+    // the invite won't show up in the invites list until the tracking row
+    // exists. See route.ts insertError handling.
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ success: true });
+    const body = await response.json();
+    expect(body.success).toBe(true);
+    expect(body.warning).toEqual(expect.any(String));
     expect(errorSpy).toHaveBeenCalledWith('Failed to record admin_invites row', expect.any(Error));
   });
 });

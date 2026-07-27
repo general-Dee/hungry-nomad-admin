@@ -111,7 +111,11 @@ export default function Sidebar() {
         showToast(`Failed to invite admin: ${data.error || 'Unknown error'}`, 'error');
         return;
       }
-      showToast('Invite sent', 'success');
+      if (data.warning) {
+        showToast(data.warning, 'warning');
+      } else {
+        showToast('Invite sent', 'success');
+      }
       setInviting(false);
       setInviteEmail('');
     } catch (err) {
