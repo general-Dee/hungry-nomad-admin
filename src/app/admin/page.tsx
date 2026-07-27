@@ -15,6 +15,12 @@ import {
 // Dynamically import SalesChart with SSR disabled
 const SalesChart = dynamic(() => import('@/components/admin/SalesChart'), { ssr: false });
 
+interface NewOrderPayload {
+  id: number;
+  customer_name: string;
+  total_amount: number;
+}
+
 export default function AdminDashboard() {
   const { login, isAuthenticated } = useAdminAuth();
   const { showToast } = useToast();
@@ -65,7 +71,7 @@ export default function AdminDashboard() {
       .channel('admin-dashboard')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
         fetchStats();
-        const newOrder = payload.new as any;
+        const newOrder = payload.new as NewOrderPayload;
         showToast(`New order #${newOrder.id} from ${newOrder.customer_name} – ₦${newOrder.total_amount.toLocaleString()}`, 'success');
         // Safely check for Notification API
         if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {

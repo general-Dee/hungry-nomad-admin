@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
+import type { ComponentType, SVGProps } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAdminAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -15,7 +16,7 @@ interface Order {
   created_at: string;
 }
 
-const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+const statusConfig: Record<string, { label: string; color: string; icon: ComponentType<SVGProps<SVGSVGElement>> | null }> = {
   pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: null },
   paid: { label: 'Paid', color: 'bg-green-100 text-green-800', icon: CheckCircleIcon },
   delivered: { label: 'Delivered', color: 'bg-blue-100 text-blue-800', icon: CheckCircleIcon },

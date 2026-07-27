@@ -46,9 +46,10 @@ function AcceptInviteForm() {
         {!tokenHash ? (
           <p className="text-center text-sm text-gray-500">This invite link is invalid.</p>
         ) : status === 'error' ? (
-          <p className="text-center text-sm text-gray-500">
-            This invite link is invalid or has expired. Ask an admin to send you a new invite.
-          </p>
+          <div className="text-center text-sm text-gray-500">
+            <p>This invite link is invalid or has expired. Ask an admin to send you a new invite.</p>
+            {error && <p className="mt-2 text-xs text-gray-400">{error}</p>}
+          </div>
         ) : (
           <>
             <p className="mb-4 text-center text-sm text-gray-500">

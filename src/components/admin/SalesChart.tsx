@@ -84,7 +84,7 @@ export default function SalesChart() {
         <XAxis dataKey="date" />
         <YAxis />
         <Tooltip
-          formatter={(value: any) => {
+          formatter={(value: unknown) => {
             if (value === undefined || value === null) return '₦0';
             const num = typeof value === 'number' ? value : Number(value);
             return `₦${num.toLocaleString()}`;
