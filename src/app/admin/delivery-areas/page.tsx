@@ -54,9 +54,10 @@ export default function DeliveryAreasPage() {
   }
 
   async function saveZone(zone: Partial<DeliveryArea>) {
-    const { error } = zone.id
-      ? await supabase.from('delivery_zones').update(zone).eq('id', zone.id)
-      : await supabase.from('delivery_zones').insert(zone);
+    const { id, ...zoneData } = zone;
+    const { error } = id
+      ? await supabase.from('delivery_zones').update(zoneData).eq('id', id)
+      : await supabase.from('delivery_zones').insert(zoneData);
     if (error) {
       showToast(`Failed to save zone: ${error.message}`, 'error');
       return;

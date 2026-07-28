@@ -133,9 +133,10 @@ export default function MenuPage() {
       finalImageUrl = uploadedUrl;
     }
     const productToSave = { ...editing, image_url: finalImageUrl };
-    const { error } = productToSave.id
-      ? await supabase.from('products').update(productToSave).eq('id', productToSave.id)
-      : await supabase.from('products').insert(productToSave);
+    const { id, ...productData } = productToSave;
+    const { error } = id
+      ? await supabase.from('products').update(productData).eq('id', id)
+      : await supabase.from('products').insert(productData);
     setUploading(false);
     if (error) {
       showToast(`Failed to save product: ${error.message}`, 'error');
