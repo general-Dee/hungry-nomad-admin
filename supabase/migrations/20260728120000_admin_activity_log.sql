@@ -1,6 +1,4 @@
--- NOT YET APPLIED -- see supabase/migrations/README.md for the convention:
--- paste this into the Supabase Dashboard SQL Editor once, then update this
--- header comment to "ALREADY APPLIED" in the same commit as any follow-up.
+-- ALREADY APPLIED (see supabase/migrations/README.md for the convention).
 --
 -- admin_activity_log: audit trail for admin-driven changes to products,
 -- delivery_zones, and orders. These tables are mutated directly from the
