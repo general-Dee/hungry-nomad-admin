@@ -15,6 +15,7 @@ import {
   KeyIcon,
   UserPlusIcon,
   EnvelopeIcon,
+  ClipboardDocumentListIcon,
   Bars3Icon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
@@ -25,6 +26,7 @@ const navigation = [
   { name: 'Menu', href: '/admin/menu', icon: CakeIcon },
   { name: 'Delivery Areas', href: '/admin/delivery-areas', icon: MapIcon },
   { name: 'Admin Invites', href: '/admin/invites', icon: EnvelopeIcon },
+  { name: 'Activity Log', href: '/admin/activity-log', icon: ClipboardDocumentListIcon },
 ];
 
 export default function Sidebar() {
