@@ -12,7 +12,9 @@ Admin panel for Hungry Nomad, a food-delivery product. Built with Next.js
 - **Delivery areas** — manage per-LGA delivery fees and zones.
 - **Admin invites** — invite-only admin onboarding: invite links are sent via
   [Resend](https://resend.com) (not Supabase's built-in mailer) so delivery,
-  bounce, and complaint status can be tracked via webhooks.
+  bounce, and complaint status can be tracked via webhooks. Accepting an
+  invite requires setting a password, which is then used to sign in
+  afterward.
 
 ## Tech stack
 
