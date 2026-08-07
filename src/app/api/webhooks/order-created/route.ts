@@ -78,7 +78,12 @@ export async function POST(request: Request) {
           from: senderId,
           sms: body,
           type: 'plain',
-          channel: 'dnd',
+          // 'dnd' delivers better to Nigerian numbers on do-not-disturb
+          // lists but requires an approved Sender ID; the shared default
+          // "Termii" isn't approved for this workspace yet. Using 'generic'
+          // until a real Sender ID is registered and approved -- switch
+          // back to 'dnd' at that point.
+          channel: 'generic',
         }),
       });
       if (!res.ok) {
