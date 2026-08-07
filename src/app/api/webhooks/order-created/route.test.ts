@@ -145,7 +145,7 @@ describe('POST /api/webhooks/order-created', () => {
     const payload = JSON.parse(options.body);
     expect(payload.api_key).toBe('test_api_key');
     expect(payload.from).toBe('Termii');
-    expect(payload.channel).toBe('generic');
+    expect(payload.channel).toBe('dnd');
     expect(payload.sms).toContain('#42');
     expect(payload.sms).toContain('Ada Lovelace');
   });
