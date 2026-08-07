@@ -85,6 +85,15 @@ describe('POST /api/webhooks/order-created', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('returns 401 when the secret header is the same length but wrong', async () => {
+    // Same length as 'test-secret' so this exercises the timingSafeEqual
+    // comparison itself, not just the length-mismatch short-circuit.
+    const response = await POST(makeRequest(insertPayload(), { 'x-order-sms-webhook-secret': 'xest-secret' }));
+
+    expect(response.status).toBe(401);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it('acks 200 without calling Termii when the payload is not an orders INSERT', async () => {
     const response = await POST(makeRequest(insertPayload({ type: 'UPDATE' })));
 

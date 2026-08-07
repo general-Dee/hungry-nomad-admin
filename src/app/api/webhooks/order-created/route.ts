@@ -1,4 +1,14 @@
+import { timingSafeEqual } from 'crypto';
+
 import { NextResponse } from 'next/server';
+
+function secretsMatch(provided: string | null, expected: string): boolean {
+  if (provided === null) return false;
+  const providedBuf = Buffer.from(provided);
+  const expectedBuf = Buffer.from(expected);
+  if (providedBuf.length !== expectedBuf.length) return false;
+  return timingSafeEqual(providedBuf, expectedBuf);
+}
 
 interface OrderRecord {
   id: number;
@@ -25,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   const providedSecret = request.headers.get('x-order-sms-webhook-secret');
-  if (providedSecret !== expectedSecret) {
+  if (!secretsMatch(providedSecret, expectedSecret)) {
     return NextResponse.json({ error: 'Invalid secret' }, { status: 401 });
   }
 
