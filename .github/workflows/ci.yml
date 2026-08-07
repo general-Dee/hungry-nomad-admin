@@ -18,6 +18,10 @@ jobs:
       RESEND_API_KEY: placeholder-resend-key
       RESEND_FROM_EMAIL: admin@example.com
       RESEND_WEBHOOK_SECRET: placeholder-webhook-secret
+      TERMII_API_KEY: placeholder-termii-api-key
+      TERMII_SENDER_ID: placeholder-sender-id
+      STAFF_NOTIFICATION_PHONE_NUMBERS: "+2348011112222"
+      ORDER_SMS_WEBHOOK_SECRET: placeholder-order-sms-webhook-secret
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
