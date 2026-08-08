@@ -28,13 +28,14 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex min-h-screen items-center justify-center p-8 text-center">
-          <div className="rounded-2xl bg-white p-8 shadow-xl">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
-            <p className="text-gray-700 mb-2 font-mono text-sm">{this.state.error?.message}</p>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-8)', textAlign: 'center' }}>
+          <div className="card elev-md" style={{ maxWidth: 420, padding: 'var(--space-6)' }}>
+            <h2 style={{ color: 'var(--color-accent)' }}>Something went wrong</h2>
+            <p className="text-muted" style={{ fontFamily: 'monospace', fontSize: 13 }}>{this.state.error?.message}</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-4 rounded-lg bg-amber-500 px-4 py-2 text-white hover:bg-amber-600"
+              className="btn btn-primary"
+              style={{ marginTop: 'var(--space-2)' }}
             >
               Reload page
             </button>

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { AlertTriangle, CheckCircle, Info, X, XCircle } from 'lucide-react';
 
 interface Toast {
   id: string;
@@ -36,16 +36,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const getTypeStyles = (type: Toast['type']) => {
+  const getTypeMeta = (type: Toast['type']) => {
     switch (type) {
       case 'success':
-        return 'bg-green-50 text-green-800 border-green-200';
+        return { borderColor: 'var(--color-accent-2)', Icon: CheckCircle };
       case 'warning':
-        return 'bg-yellow-50 text-yellow-800 border-yellow-200';
+        return { borderColor: 'var(--color-accent)', Icon: AlertTriangle };
       case 'error':
-        return 'bg-red-50 text-red-800 border-red-200';
+        return { borderColor: 'var(--color-accent)', Icon: XCircle };
       default:
-        return 'bg-blue-50 text-blue-800 border-blue-200';
+        return { borderColor: 'var(--color-neutral-400)', Icon: Info };
     }
   };
 
@@ -53,20 +53,29 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ showToast }}>
       {children}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`flex items-center justify-between gap-4 rounded-lg border px-4 py-3 shadow-lg ${getTypeStyles(toast.type)} animate-in slide-in-from-right-5 fade-in duration-300`}
-          >
-            <span className="text-sm font-medium">{toast.message}</span>
-            <button
-              onClick={() => removeToast(toast.id)}
-              className="rounded p-1 hover:bg-black/10"
+        {toasts.map((toast) => {
+          const { borderColor, Icon } = getTypeMeta(toast.type);
+          return (
+            <div
+              key={toast.id}
+              className="card elev-md flex-row items-center justify-between gap-4"
+              style={{ borderLeft: `4px solid ${borderColor}`, minWidth: 280, maxWidth: 380 }}
             >
-              <XMarkIcon className="h-4 w-4" />
-            </button>
-          </div>
-        ))}
+              <div className="flex items-center gap-2">
+                <Icon size={16} style={{ flexShrink: 0, color: borderColor }} />
+                <span className="text-sm font-medium">{toast.message}</span>
+              </div>
+              <button
+                onClick={() => removeToast(toast.id)}
+                className="btn btn-ghost btn-icon"
+                style={{ width: 24, height: 24 }}
+                aria-label="Dismiss"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          );
+        })}
       </div>
     </ToastContext.Provider>
   );

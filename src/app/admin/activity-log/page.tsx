@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAdminAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -26,10 +26,10 @@ const tableLabels: Record<string, string> = {
   orders: 'Order',
 };
 
-const actionConfig: Record<ActivityAction, { label: string; color: string }> = {
-  insert: { label: 'Created', color: 'bg-green-100 text-green-800' },
-  update: { label: 'Updated', color: 'bg-amber-100 text-amber-800' },
-  delete: { label: 'Deleted', color: 'bg-red-100 text-red-800' },
+const actionConfig: Record<ActivityAction, { label: string; tagClass: string }> = {
+  insert: { label: 'Created', tagClass: 'tag tag-accent' },
+  update: { label: 'Updated', tagClass: 'tag tag-outline' },
+  delete: { label: 'Deleted', tagClass: 'tag tag-outline' },
 };
 
 const filters = [
@@ -127,22 +127,20 @@ export default function ActivityLogPage() {
   const filteredLogs = filter === 'all' ? logs : logs.filter((log) => log.table_name === filter);
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Activity Log</h1>
-        <p className="text-gray-500 mt-1">Track record of admin changes to menu items, delivery areas, and orders</p>
+    <div>
+      <div style={{ marginBottom: 'var(--space-6)' }}>
+        <h1 style={{ margin: 0 }}>Activity Log</h1>
+        <p style={{ margin: 'var(--space-2) 0 0', opacity: 0.65 }}>Record of admin changes to menu items, delivery areas, and orders</p>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
         {filters.map((f) => (
           <button
             key={f.value}
+            type="button"
+            className={filter === f.value ? 'btn btn-primary' : 'btn btn-secondary'}
+            style={{ padding: '6px 14px', fontSize: 13 }}
             onClick={() => setFilter(f.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              filter === f.value
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm'
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-            }`}
           >
             {f.label}
           </button>
@@ -152,75 +150,57 @@ export default function ActivityLogPage() {
       {loading ? (
         <div className="text-center py-12">Loading activity log...</div>
       ) : filteredLogs.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">No activity recorded yet.</div>
+        <div className="text-center py-12 text-muted">No activity recorded yet.</div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">When</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredLogs.map((row) => {
-                  const changedFields = row.action === 'update' ? getChangedFields(row) : [];
-                  const isExpanded = expandedId === row.id;
-                  return (
-                    <Fragment key={row.id}>
-                      <tr className="hover:bg-gray-50 transition">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(row.created_at).toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {row.changed_by_email || 'System'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {tableLabels[row.table_name] || row.table_name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${actionConfig[row.action].color}`}>
-                            {actionConfig[row.action].label}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          <div className="flex items-center gap-2">
-                            <span>{getSummary(row)}</span>
-                            {changedFields.length > 0 && (
-                              <button
-                                onClick={() => setExpandedId(isExpanded ? null : row.id)}
-                                className="text-amber-600 hover:text-amber-800 font-medium text-xs"
-                              >
-                                {isExpanded ? 'Hide' : `${changedFields.length} field${changedFields.length > 1 ? 's' : ''} changed`}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                      {isExpanded && changedFields.length > 0 && (
-                        <tr className="bg-gray-50">
-                          <td colSpan={5} className="px-6 py-3 text-sm text-gray-600">
-                            <ul className="space-y-1">
-                              {changedFields.map(({ field, from, to }) => (
-                                <li key={field}>
-                                  <span className="font-medium">{field}</span>: {JSON.stringify(from)} → {JSON.stringify(to)}
-                                </li>
-                              ))}
-                            </ul>
-                          </td>
-                        </tr>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Admin</th>
+              <th>Type</th>
+              <th>Action</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredLogs.map((row) => {
+              const changedFields = row.action === 'update' ? getChangedFields(row) : [];
+              const isExpanded = expandedId === row.id;
+              return (
+                <tr key={row.id}>
+                  <td style={{ opacity: 0.65 }}>{new Date(row.created_at).toLocaleString()}</td>
+                  <td>{row.changed_by_email || 'System'}</td>
+                  <td style={{ opacity: 0.65 }}>{tableLabels[row.table_name] || row.table_name}</td>
+                  <td><span className={actionConfig[row.action].tagClass}>{actionConfig[row.action].label}</span></td>
+                  <td>
+                    <div>
+                      {getSummary(row)}
+                      {changedFields.length > 0 && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          style={{ padding: '0 0 0 var(--space-2)', fontSize: 12 }}
+                          onClick={() => setExpandedId(isExpanded ? null : row.id)}
+                        >
+                          {isExpanded ? 'Hide' : `${changedFields.length} field${changedFields.length > 1 ? 's' : ''} changed`}
+                        </button>
                       )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    </div>
+                    {isExpanded && changedFields.length > 0 && (
+                      <div style={{ marginTop: 'var(--space-2)', fontSize: 12, opacity: 0.75 }}>
+                        {changedFields.map(({ field, from, to }) => (
+                          <div key={field} style={{ padding: '2px 0' }}>
+                            <strong>{field}</strong>: {JSON.stringify(from)} → {JSON.stringify(to)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       )}
     </div>
   );

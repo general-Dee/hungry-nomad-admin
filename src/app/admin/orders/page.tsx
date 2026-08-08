@@ -1,11 +1,11 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
-import type { ComponentType, SVGProps } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAdminAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import { useRouter } from 'next/navigation';
-import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { Copy } from 'lucide-react';
 
 interface Order {
   id: number;
@@ -16,19 +16,29 @@ interface Order {
   created_at: string;
 }
 
-const statusConfig: Record<string, { label: string; color: string; icon: ComponentType<SVGProps<SVGSVGElement>> | null }> = {
-  pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: null },
-  paid: { label: 'Paid', color: 'bg-green-100 text-green-800', icon: CheckCircleIcon },
-  delivered: { label: 'Delivered', color: 'bg-blue-100 text-blue-800', icon: CheckCircleIcon },
-  failed: { label: 'Failed', color: 'bg-red-100 text-red-800', icon: XCircleIcon },
+const statusConfig: Record<string, { label: string; tagClass: string }> = {
+  pending: { label: 'Pending', tagClass: 'tag tag-neutral' },
+  paid: { label: 'Paid', tagClass: 'tag tag-outline' },
+  delivered: { label: 'Delivered', tagClass: 'tag tag-accent' },
+  failed: { label: 'Failed', tagClass: 'tag tag-outline' },
 };
+
+const statusFilterOptions = [
+  { value: 'all', label: 'All' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'delivered', label: 'Delivered' },
+  { value: 'failed', label: 'Failed' },
+];
 
 export default function OrdersPage() {
   const { isAuthenticated, isLoading } = useAdminAuth();
+  const { showToast } = useToast();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     if (isLoading) return;
@@ -51,8 +61,11 @@ export default function OrdersPage() {
 
   async function updateStatus(orderId: number, newStatus: string) {
     const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
-    if (error) alert('Update failed');
-    else fetchOrders();
+    if (error) {
+      showToast(`Failed to update order status: ${error.message}`, 'error');
+    } else {
+      fetchOrders();
+    }
   }
 
   const exportToCSV = () => {
@@ -75,10 +88,12 @@ export default function OrdersPage() {
     URL.revokeObjectURL(url);
   };
 
-  const filteredOrders = orders.filter(order =>
-    order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.customer_phone.includes(searchTerm)
-  );
+  const filteredOrders = orders
+    .filter(order => statusFilter === 'all' || order.status === statusFilter)
+    .filter(order =>
+      order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_phone.includes(searchTerm)
+    );
 
   if (isLoading) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
@@ -87,101 +102,97 @@ export default function OrdersPage() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Orders</h1>
-          <p className="mt-1 text-gray-500">Track and manage customer orders</p>
+          <h1 style={{ margin: 0 }}>Orders</h1>
+          <p style={{ margin: 'var(--space-2) 0 0', opacity: 0.65 }}>Track and manage customer orders</p>
         </div>
-        <button
-          onClick={exportToCSV}
-          className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
-        >
+        <button type="button" className="btn btn-secondary" onClick={exportToCSV}>
           Export CSV
         </button>
       </div>
 
-      <div className="flex justify-end">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+          {statusFilterOptions.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              className={statusFilter === f.value ? 'btn btn-primary' : 'btn btn-secondary'}
+              style={{ padding: '6px 14px', fontSize: 13 }}
+              onClick={() => setStatusFilter(f.value)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
         <input
+          className="input"
           type="text"
-          placeholder="Search by name or phone..."
+          placeholder="Search by name or phone…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-amber-500 focus:outline-none"
+          style={{ maxWidth: 280 }}
         />
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent"></div>
-        </div>
+        <div className="flex justify-center py-12">Loading orders...</div>
       ) : (
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Order</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Customer</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Amount</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Date</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredOrders.map((order) => {
-                  const StatusIcon = statusConfig[order.status]?.icon;
-                  return (
-                    <tr key={order.id} className="transition hover:bg-gray-50">
-                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                        #{order.id}
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(order.id.toString());
-                            alert(`Order #${order.id} copied!`);
-                          }}
-                          className="ml-2 text-gray-400 hover:text-gray-600"
-                          title="Copy ID"
-                        >
-                          📋
-                        </button>
-                       </td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{order.customer_name}</div>
-                        <div className="text-sm text-gray-500">{order.customer_phone}</div>
-                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                        ₦{order.total_amount.toLocaleString()}
-                       </td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${statusConfig[order.status]?.color}`}>
-                          {StatusIcon && <StatusIcon className="h-3 w-3" />}
-                          {statusConfig[order.status]?.label}
-                        </span>
-                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                        {new Date(order.created_at).toLocaleDateString()}
-                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm">
-                        <select
-                          value={order.status}
-                          onChange={(e) => updateStatus(order.id, e.target.value)}
-                          className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="paid">Paid</option>
-                          <option value="delivered">Delivered</option>
-                          <option value="failed">Failed</option>
-                        </select>
-                       </td>
-                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Customer</th>
+              <th style={{ textAlign: 'right' }}>Amount</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Update status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredOrders.map((order) => (
+              <tr key={order.id}>
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  #{order.id}
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-icon"
+                    style={{ width: 24, height: 24, marginLeft: 4 }}
+                    title="Copy ID"
+                    onClick={() => {
+                      navigator.clipboard.writeText(order.id.toString());
+                      showToast(`Order #${order.id} copied`, 'success');
+                    }}
+                  >
+                    <Copy size={13} />
+                  </button>
+                </td>
+                <td>
+                  <div>{order.customer_name}</div>
+                  <div style={{ fontSize: 12, opacity: 0.55 }}>{order.customer_phone}</div>
+                </td>
+                <td style={{ textAlign: 'right' }}>₦{order.total_amount.toLocaleString()}</td>
+                <td><span className={statusConfig[order.status]?.tagClass || 'tag tag-neutral'}>{statusConfig[order.status]?.label || order.status}</span></td>
+                <td style={{ opacity: 0.65 }}>{new Date(order.created_at).toLocaleDateString()}</td>
+                <td>
+                  <select
+                    className="input"
+                    value={order.status}
+                    onChange={(e) => updateStatus(order.id, e.target.value)}
+                    style={{ padding: '6px 10px', fontSize: 13 }}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="paid">Paid</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="failed">Failed</option>
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );

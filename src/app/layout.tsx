@@ -1,14 +1,14 @@
-﻿'use client';
+'use client';
 
-import { Inter } from 'next/font/google';
+import { Archivo } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
-import Sidebar from '@/components/Sidebar';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import AppShell from '@/components/AppShell';
 import { useEffect } from 'react';
 
-const inter = Inter({ subsets: ['latin'] });
+const archivo = Archivo({ subsets: ['latin'], weight: ['400', '600', '800'], variable: '--font-archivo' });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -31,16 +31,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={archivo.variable}>
         <AuthProvider>
           <ToastProvider>
             <ErrorBoundary>
-              <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-                <Sidebar />
-                <main className="flex-1 overflow-auto">
-                  <div className="p-6 md:p-8">{children}</div>
-                </main>
-              </div>
+              <AppShell>{children}</AppShell>
             </ErrorBoundary>
           </ToastProvider>
         </AuthProvider>
