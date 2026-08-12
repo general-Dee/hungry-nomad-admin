@@ -11,7 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { BarChart3 } from 'lucide-react';
+import { ChartBar } from '@phosphor-icons/react';
 
 interface RawOrder {
   created_at: string;
@@ -101,7 +101,7 @@ export default function SalesChart({ range }: { range: '7d' | '30d' }) {
   if (!hasSales) {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-muted">
-        <BarChart3 size={40} strokeWidth={1.5} />
+        <ChartBar size={40} weight="duotone" />
         <p className="mt-2 text-sm">No sales data available yet</p>
         <p className="text-xs">Completed orders will appear here</p>
       </div>

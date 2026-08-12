@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAdminAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useRouter } from 'next/navigation';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { PencilSimple, Plus, Trash } from '@phosphor-icons/react';
 import Dialog from '@/components/ui/Dialog';
 
 interface DeliveryArea {
@@ -81,12 +81,12 @@ export default function DeliveryAreasPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
         <div>
-          <h1 style={{ margin: 0 }}>Delivery Areas</h1>
-          <p style={{ margin: 'var(--space-2) 0 0', opacity: 0.65 }}>Manage delivery fees by Local Government Area</p>
+          <div className="card-kicker">Delivery areas</div>
+          <h1 style={{ margin: 0 }}>Fees by LGA</h1>
         </div>
         <button type="button" className="btn btn-primary" onClick={() => setEditing({ id: 0, lga_name: '', fee: 0 })}>
           Add LGA
-          <Plus size={14} />
+          <Plus size={14} weight="duotone" />
         </button>
       </div>
 
@@ -127,33 +127,44 @@ export default function DeliveryAreasPage() {
       </Dialog>
 
       {loading ? (
-        <div className="text-center py-12">Loading zones...</div>
+        <p className="text-muted">Loading delivery areas…</p>
+      ) : zones.length === 0 ? (
+        <p className="text-muted">No delivery areas yet.</p>
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>LGA</th>
-              <th style={{ textAlign: 'right' }}>Delivery fee</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {zones.map((zone) => (
-              <tr key={zone.id}>
-                <td>{zone.lga_name}</td>
-                <td style={{ textAlign: 'right' }}>₦{zone.fee.toLocaleString()}</td>
-                <td style={{ whiteSpace: 'nowrap' }}>
-                  <button type="button" className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 13 }} onClick={() => setEditing(zone)}>
-                    <Pencil size={13} /> Edit
-                  </button>
-                  <button type="button" className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 13 }} onClick={() => deleteZone(zone.id)}>
-                    <Trash2 size={13} /> Delete
-                  </button>
-                </td>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>LGA</th>
+                <th style={{ textAlign: 'right' }}>Fee</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {zones.map((zone) => (
+                <tr key={zone.id}>
+                  <td>{zone.lga_name}</td>
+                  <td style={{ textAlign: 'right' }}>₦{zone.fee.toLocaleString()}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    <button type="button" className="btn btn-ghost btn-icon" title="Edit" aria-label={`Edit ${zone.lga_name}`} onClick={() => setEditing(zone)}>
+                      <PencilSimple size={15} weight="duotone" />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-icon"
+                      title="Delete"
+                      aria-label={`Delete ${zone.lga_name}`}
+                      style={{ color: 'var(--color-accent-2)' }}
+                      onClick={() => deleteZone(zone.id)}
+                    >
+                      <Trash size={15} weight="duotone" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

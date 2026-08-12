@@ -6,7 +6,7 @@ import { useAdminAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { PencilSimple, Plus, Trash } from '@phosphor-icons/react';
 import Dialog from '@/components/ui/Dialog';
 
 interface Product {
@@ -47,6 +47,7 @@ export default function MenuPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -92,6 +93,18 @@ export default function MenuPage() {
       return;
     }
     showToast('Product deleted', 'success');
+    fetchProducts();
+  }
+
+  async function deleteSelectedProducts() {
+    if (!confirm(`Delete ${selectedProductIds.length} item(s)?`)) return;
+    const { error } = await supabase.from('products').delete().in('id', selectedProductIds);
+    if (error) {
+      showToast(`Failed to delete products: ${error.message}`, 'error');
+      return;
+    }
+    showToast(`${selectedProductIds.length} product${selectedProductIds.length === 1 ? '' : 's'} deleted`, 'success');
+    setSelectedProductIds([]);
     fetchProducts();
   }
 
@@ -169,13 +182,27 @@ export default function MenuPage() {
   }
 
   const filteredProducts = products.filter((p) => categoryFilter === 'all' || p.category === categoryFilter);
+  const allFilteredSelected = filteredProducts.length > 0 && filteredProducts.every((p) => selectedProductIds.includes(p.id));
+
+  const toggleSelectAll = () => {
+    if (allFilteredSelected) {
+      const filteredIds = new Set(filteredProducts.map((p) => p.id));
+      setSelectedProductIds((prev) => prev.filter((id) => !filteredIds.has(id)));
+    } else {
+      setSelectedProductIds((prev) => Array.from(new Set([...prev, ...filteredProducts.map((p) => p.id)])));
+    }
+  };
+
+  const toggleSelectOne = (id: number) => {
+    setSelectedProductIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
         <div>
-          <h1 style={{ margin: 0 }}>Menu Items</h1>
-          <p style={{ margin: 'var(--space-2) 0 0', opacity: 0.65 }}>Manage your restaurant menu</p>
+          <div className="card-kicker">Menu</div>
+          <h1 style={{ margin: 0 }}>Menu items</h1>
         </div>
         <button
           type="button"
@@ -193,7 +220,7 @@ export default function MenuPage() {
           }
         >
           Add product
-          <Plus size={14} />
+          <Plus size={14} weight="duotone" />
         </button>
       </div>
 
@@ -210,6 +237,16 @@ export default function MenuPage() {
           </button>
         ))}
       </div>
+
+      {selectedProductIds.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+          <span style={{ fontSize: 14 }}>{selectedProductIds.length} selected</span>
+          <button type="button" className="btn btn-secondary" style={{ color: 'var(--color-accent-2)' }} onClick={deleteSelectedProducts}>
+            Delete selected
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => setSelectedProductIds([])}>Clear</button>
+        </div>
+      )}
 
       <Dialog open={editing !== null} onClose={closeModal} title={editing?.id ? 'Edit Product' : 'Add Product'} className="max-h-[90vh] overflow-y-auto">
         {editing && (
@@ -256,7 +293,7 @@ export default function MenuPage() {
               >
                 {categories.map((cat) => (
                   <option key={cat.value} value={cat.value}>
-                    {cat.emoji} {cat.label}
+                    {cat.label}
                   </option>
                 ))}
               </select>
@@ -315,47 +352,69 @@ export default function MenuPage() {
       </Dialog>
 
       {loading ? (
-        <div className="text-center py-12">Loading menu items...</div>
+        <p className="text-muted">Loading menu items…</p>
+      ) : filteredProducts.length === 0 ? (
+        <p className="text-muted">No menu items yet.</p>
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Photo</th>
-              <th>Name</th>
-              <th>Description</th>
-              <th style={{ textAlign: 'right' }}>Price</th>
-              <th>Category</th>
-              <th>Subcategory</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredProducts.map((product) => (
-              <tr key={product.id}>
-                <td>
-                  <div className="relative w-11 h-11 rounded-md overflow-hidden" style={{ border: '1px solid var(--color-divider)' }}>
-                    {product.image_url && (
-                      <Image src={product.image_url} alt={product.name} fill className="object-cover" sizes="44px" />
-                    )}
-                  </div>
-                </td>
-                <td>{product.name}</td>
-                <td style={{ opacity: 0.65, maxWidth: 260 }} className="truncate">{product.description}</td>
-                <td style={{ textAlign: 'right' }}>₦{product.price.toLocaleString()}</td>
-                <td><span className="tag tag-outline">{categories.find((c) => c.value === product.category)?.label || product.category}</span></td>
-                <td style={{ opacity: 0.65 }}>{product.subcategory || '—'}</td>
-                <td style={{ whiteSpace: 'nowrap' }}>
-                  <button type="button" className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 13 }} onClick={() => setEditing(product)}>
-                    <Pencil size={13} /> Edit
-                  </button>
-                  <button type="button" className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 13 }} onClick={() => deleteProduct(product.id)}>
-                    <Trash2 size={13} /> Delete
-                  </button>
-                </td>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>
+                  <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll} aria-label="Select all products" />
+                </th>
+                <th>Photo</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th style={{ textAlign: 'right' }}>Price</th>
+                <th>Category</th>
+                <th>Subcategory</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredProducts.map((product) => (
+                <tr key={product.id}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selectedProductIds.includes(product.id)}
+                      onChange={() => toggleSelectOne(product.id)}
+                      aria-label={`Select ${product.name}`}
+                    />
+                  </td>
+                  <td>
+                    <div className="halftone relative w-11 h-11 overflow-hidden" style={{ border: '1px solid var(--color-divider)' }}>
+                      {product.image_url && (
+                        <Image src={product.image_url} alt={product.name} fill className="object-cover" sizes="44px" />
+                      )}
+                    </div>
+                  </td>
+                  <td>{product.name}</td>
+                  <td style={{ opacity: 0.65, maxWidth: 260 }} className="truncate">{product.description}</td>
+                  <td style={{ textAlign: 'right' }}>₦{product.price.toLocaleString()}</td>
+                  <td><span className="tag tag-neutral">{categories.find((c) => c.value === product.category)?.label || product.category}</span></td>
+                  <td style={{ opacity: 0.65 }}>{product.subcategory || '—'}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    <button type="button" className="btn btn-ghost btn-icon" title="Edit" aria-label={`Edit ${product.name}`} onClick={() => setEditing(product)}>
+                      <PencilSimple size={15} weight="duotone" />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-icon"
+                      title="Delete"
+                      aria-label={`Delete ${product.name}`}
+                      style={{ color: 'var(--color-accent-2)' }}
+                      onClick={() => deleteProduct(product.id)}
+                    >
+                      <Trash size={15} weight="duotone" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

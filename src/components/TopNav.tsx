@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAdminAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { ChevronDown, KeyRound, LogOut, Menu, UserPlus, X } from 'lucide-react';
+import { Key, List, SignOut, UserPlus, X } from '@phosphor-icons/react';
 import Dialog from '@/components/ui/Dialog';
 
 const navigation = [
@@ -21,10 +21,9 @@ const navigation = [
 export default function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout, userEmail } = useAdminAuth();
+  const { logout } = useAdminAuth();
   const { showToast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [changingPassword, setChangingPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -33,7 +32,6 @@ export default function TopNav() {
   const [inviting, setInviting] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
-  const accountMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchPending = async () => {
@@ -56,17 +54,6 @@ export default function TopNav() {
 
     return () => { supabase.removeChannel(channel); };
   }, []);
-
-  useEffect(() => {
-    if (!accountMenuOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
-        setAccountMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [accountMenuOpen]);
 
   const handleLogout = async () => {
     await logout();
@@ -146,101 +133,81 @@ export default function TopNav() {
         </div>
 
         <div className="md:hidden" style={{ marginLeft: 'auto' }}>
-          <button type="button" className="btn btn-ghost btn-icon" aria-label="Menu" onClick={() => setMobileMenuOpen(true)}>
-            <Menu size={18} />
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Menu'}
+            onClick={() => setMobileMenuOpen((v) => !v)}
+          >
+            {mobileMenuOpen ? <X size={18} weight="duotone" /> : <List size={18} weight="duotone" />}
           </button>
         </div>
 
-        <div className="hidden md:flex md:items-center" style={{ marginLeft: 'auto', gap: 'var(--space-4)' }}>
-          <div ref={accountMenuRef} style={{ position: 'relative' }}>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => setAccountMenuOpen((v) => !v)}
-              style={{ fontSize: 13, opacity: 0.85 }}
-            >
-              {userEmail || 'Account'}
-              <ChevronDown size={14} />
-            </button>
-            {accountMenuOpen && (
-              <div
-                className="card elev-md"
-                style={{
-                  position: 'absolute', right: 0, top: '110%', zIndex: 40,
-                  minWidth: 200, padding: 'var(--space-2)', gap: 0,
-                }}
-              >
-                <button
-                  type="button"
-                  className="btn btn-block"
-                  onClick={() => { setInviting(true); setAccountMenuOpen(false); }}
-                >
-                  <UserPlus size={15} /> Invite Admin
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-block"
-                  onClick={() => { setChangingPassword(true); setAccountMenuOpen(false); }}
-                >
-                  <KeyRound size={15} /> Change Password
-                </button>
-              </div>
-            )}
-          </div>
-          <button type="button" className="btn btn-ghost" onClick={handleLogout}>
-            <LogOut size={15} />
-            Logout
+        <div className="hidden md:flex md:items-center" style={{ marginLeft: 'auto', gap: 'var(--space-2)' }}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon"
+            aria-label="Invite admin"
+            title="Invite admin"
+            onClick={() => setInviting(true)}
+          >
+            <UserPlus size={18} weight="duotone" />
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon"
+            aria-label="Change password"
+            title="Change password"
+            onClick={() => setChangingPassword(true)}
+          >
+            <Key size={18} weight="duotone" />
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={handleLogout}>
+            <SignOut size={15} weight="duotone" />
+            Sign out
           </button>
         </div>
       </nav>
 
-      {/* Mobile nav drawer */}
+      {/* Mobile nav panel — pushes content down, no overlay */}
       {mobileMenuOpen && (
-        <div className="dialog-backdrop md:hidden" style={{ justifyItems: 'stretch', alignItems: 'stretch' }} onClick={() => setMobileMenuOpen(false)}>
-          <div
-            className="card elev-lg"
-            style={{ marginLeft: 'auto', height: '100%', width: 'min(280px, 85%)', borderRadius: 0, gap: 'var(--space-1)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn-ghost btn-icon" aria-label="Close menu" onClick={() => setMobileMenuOpen(false)}>
-                <X size={18} />
-              </button>
-            </div>
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="btn btn-block"
-                aria-current={pathname === item.href ? 'page' : undefined}
-                style={{ color: pathname === item.href ? 'var(--color-accent)' : 'var(--color-text)' }}
-              >
-                {item.name}
-                {item.name === 'Orders' && pendingCount > 0 && (
-                  <span className="tag tag-accent" style={{ marginLeft: 6 }}>{pendingCount}</span>
-                )}
-              </Link>
-            ))}
-            <div className="hr" />
+        <div className="md:hidden" style={{ padding: 'var(--space-4)', borderBottom: '2px solid var(--color-divider)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+          {navigation.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              onClick={() => setMobileMenuOpen(false)}
+              className="btn btn-block"
+              aria-current={pathname === item.href ? 'page' : undefined}
+              style={{ color: pathname === item.href ? 'var(--color-accent)' : 'var(--color-text)' }}
+            >
+              {item.name}
+              {item.name === 'Orders' && pendingCount > 0 && (
+                <span className="tag tag-accent" style={{ marginLeft: 6 }}>{pendingCount}</span>
+              )}
+            </Link>
+          ))}
+          <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
             <button
               type="button"
-              className="btn btn-block"
+              className="btn btn-secondary"
+              style={{ flex: 1 }}
               onClick={() => { setInviting(true); setMobileMenuOpen(false); }}
             >
-              <UserPlus size={15} /> Invite Admin
+              <UserPlus size={15} weight="duotone" /> Invite admin
             </button>
             <button
               type="button"
-              className="btn btn-block"
+              className="btn btn-secondary"
+              style={{ flex: 1 }}
               onClick={() => { setChangingPassword(true); setMobileMenuOpen(false); }}
             >
-              <KeyRound size={15} /> Change Password
-            </button>
-            <button type="button" className="btn btn-block" onClick={handleLogout}>
-              <LogOut size={15} /> Logout
+              <Key size={15} weight="duotone" /> Password
             </button>
           </div>
+          <button type="button" className="btn btn-secondary btn-block" onClick={handleLogout}>
+            <SignOut size={15} weight="duotone" /> Sign out
+          </button>
         </div>
       )}
 

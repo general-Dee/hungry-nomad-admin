@@ -5,8 +5,7 @@ import { useAdminAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { supabase } from '@/lib/supabaseClient';
 import dynamic from 'next/dynamic';
-import { RefreshCw } from 'lucide-react';
-import AuthCard from '@/components/AuthCard';
+import { ArrowsClockwise } from '@phosphor-icons/react';
 
 // Dynamically import SalesChart with SSR disabled
 const SalesChart = dynamic(() => import('@/components/admin/SalesChart'), { ssr: false });
@@ -123,77 +122,90 @@ export default function AdminDashboard() {
       setError(loginError ?? '');
     };
     return (
-      <AuthCard>
-        <h2 style={{ textAlign: 'center', margin: '0 0 var(--space-2)' }}>Welcome back</h2>
-        <p style={{ textAlign: 'center', margin: '0 0 var(--space-6)', opacity: 0.65, fontSize: 14 }}>
-          Sign in to manage your restaurant
-        </p>
-        <form onSubmit={handleSubmit}>
-          <div className="field" style={{ marginBottom: 'var(--space-3)' }}>
-            <label htmlFor="admin-email">Email</label>
-            <input
-              id="admin-email"
-              className="input"
-              type="email"
-              placeholder="you@hungrynomad.ng"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoFocus
-              autoComplete="username"
-            />
-          </div>
-          <div className="field" style={{ marginBottom: 'var(--space-5)' }}>
-            <label htmlFor="admin-password">Password</label>
-            <input
-              id="admin-password"
-              className="input"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-            />
-          </div>
-          {error && <p style={{ color: 'var(--color-accent)', fontSize: 13, marginBottom: 'var(--space-3)' }}>{error}</p>}
-          <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
-            {isSubmitting ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
-      </AuthCard>
+      <div className="login-page">
+        <div style={{ maxWidth: 480 }}>
+          <div className="card-kicker">Admin sign-in</div>
+          <h1>Welcome back</h1>
+          <p style={{ maxWidth: '46ch', opacity: 0.75, marginBottom: 'var(--space-6)' }}>
+            Sign in to manage your restaurant&apos;s orders, menu and delivery areas.
+          </p>
+          <form onSubmit={handleSubmit}>
+            <div className="field" style={{ marginBottom: 'var(--space-3)' }}>
+              <label htmlFor="admin-email">Email</label>
+              <input
+                id="admin-email"
+                className="input"
+                type="email"
+                placeholder="you@hungrynomad.ng"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoFocus
+                autoComplete="username"
+              />
+            </div>
+            <div className="field" style={{ marginBottom: 'var(--space-5)' }}>
+              <label htmlFor="admin-password">Password</label>
+              <input
+                id="admin-password"
+                className="input"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+              />
+            </div>
+            {error && <p style={{ color: 'var(--color-accent)', fontSize: 13, marginBottom: 'var(--space-3)' }}>{error}</p>}
+            <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
+              {isSubmitting ? 'Signing in...' : 'Sign in'}
+            </button>
+          </form>
+        </div>
+      </div>
     );
   }
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)', marginBottom: 'var(--space-8)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
         <div>
+          <div className="card-kicker">Overview</div>
           <h1 style={{ margin: 0 }}>Dashboard</h1>
-          <p style={{ margin: 'var(--space-2) 0 0', opacity: 0.65 }}>Overview of restaurant performance</p>
           <p style={{ margin: 'var(--space-1) 0 0', fontSize: 12, opacity: 0.5 }}>
             Last updated: {lastUpdated.toLocaleTimeString()}
           </p>
         </div>
         <button type="button" className="btn btn-ghost btn-icon" aria-label="Refresh" onClick={fetchStats}>
-          <RefreshCw size={16} />
+          <ArrowsClockwise size={16} weight="duotone" />
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-4)', marginBottom: 'var(--space-8)' }}>
-        <div className="card">
-          <div className="card-kicker">Today&apos;s Revenue</div>
-          <div className="card-title" style={{ fontSize: 28 }}>₦{totalRevenue.toLocaleString()}</div>
+      <div
+        style={{
+          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-6)',
+          paddingBottom: 'var(--space-6)', marginBottom: 'var(--space-8)',
+          borderBottom: '1px solid var(--color-divider)',
+        }}
+      >
+        <div>
+          <div className="text-muted" style={{ fontSize: 12, marginBottom: 'var(--space-1)' }}>Today&apos;s Revenue</div>
+          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)', fontSize: 40, color: 'var(--color-accent-700)' }}>
+            ₦{totalRevenue.toLocaleString()}
+          </div>
         </div>
-        <div className="card">
-          <div className="card-kicker">Pending Orders</div>
-          <div className="card-title" style={{ fontSize: 28 }}>{pendingCount}</div>
+        <div>
+          <div className="text-muted" style={{ fontSize: 12, marginBottom: 'var(--space-1)' }}>Pending Orders</div>
+          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)', fontSize: 40 }}>
+            {pendingCount}
+          </div>
         </div>
-        <div className="card">
-          <div className="card-kicker">Total Orders</div>
-          <div className="card-title" style={{ fontSize: 28 }}>{totalOrders}</div>
+        <div>
+          <div className="text-muted" style={{ fontSize: 12, marginBottom: 'var(--space-1)' }}>Total Orders</div>
+          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)', fontSize: 40 }}>
+            {totalOrders}
+          </div>
         </div>
       </div>
-
-      <div className="hr" style={{ marginBottom: 'var(--space-6)' }} />
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
         <h2 style={{ fontSize: 16, margin: 0 }}>Sales, {range === '7d' ? 'last 7 days' : 'last 4 weeks'}</h2>
@@ -210,8 +222,7 @@ export default function AdminDashboard() {
       </div>
       <SalesChart range={range} />
 
-      <div className="hr" style={{ margin: 'var(--space-8) 0 var(--space-6)' }} />
-      <h2 style={{ fontSize: 16, margin: '0 0 var(--space-4)' }}>Recent orders</h2>
+      <h2 style={{ fontSize: 16, margin: 'var(--space-8) 0 var(--space-4)' }}>Recent orders</h2>
       <table className="table">
         <thead>
           <tr>

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { AlertTriangle, CheckCircle, Info, X, XCircle } from 'lucide-react';
+import { CheckCircle, Info, Warning, X, XCircle } from '@phosphor-icons/react';
 
 interface Toast {
   id: string;
@@ -41,7 +41,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       case 'success':
         return { borderColor: 'var(--color-accent-2)', Icon: CheckCircle };
       case 'warning':
-        return { borderColor: 'var(--color-accent)', Icon: AlertTriangle };
+        return { borderColor: 'var(--color-accent)', Icon: Warning };
       case 'error':
         return { borderColor: 'var(--color-accent)', Icon: XCircle };
       default:
@@ -62,7 +62,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               style={{ borderLeft: `4px solid ${borderColor}`, minWidth: 280, maxWidth: 380 }}
             >
               <div className="flex items-center gap-2">
-                <Icon size={16} style={{ flexShrink: 0, color: borderColor }} />
+                <Icon size={16} weight="duotone" style={{ flexShrink: 0, color: borderColor }} />
                 <span className="text-sm font-medium">{toast.message}</span>
               </div>
               <button
@@ -71,7 +71,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 style={{ width: 24, height: 24 }}
                 aria-label="Dismiss"
               >
-                <X size={14} />
+                <X size={14} weight="duotone" />
               </button>
             </div>
           );

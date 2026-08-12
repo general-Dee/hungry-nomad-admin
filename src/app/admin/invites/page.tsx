@@ -18,9 +18,9 @@ const statusConfig: Record<string, { label: string; tagClass: string }> = {
   sent: { label: 'Sent', tagClass: 'tag tag-neutral' },
   delivered: { label: 'Delivered', tagClass: 'tag tag-accent' },
   delayed: { label: 'Delayed', tagClass: 'tag tag-outline' },
-  bounced: { label: 'Bounced', tagClass: 'tag tag-outline' },
-  complained: { label: 'Marked as spam', tagClass: 'tag tag-outline' },
-  failed: { label: 'Send failed', tagClass: 'tag tag-outline' },
+  bounced: { label: 'Bounced', tagClass: 'tag tag-accent-2' },
+  complained: { label: 'Marked as spam', tagClass: 'tag tag-accent-2' },
+  failed: { label: 'Send failed', tagClass: 'tag tag-accent-2' },
 };
 
 export default function AdminInvitesPage() {
@@ -64,39 +64,39 @@ export default function AdminInvitesPage() {
   return (
     <div>
       <div style={{ marginBottom: 'var(--space-6)' }}>
-        <h1 style={{ margin: 0 }}>Admin Invites</h1>
-        <p style={{ margin: 'var(--space-2) 0 0', opacity: 0.65 }}>Track delivery status of invite emails sent to new admins</p>
+        <div className="card-kicker">Admin invites</div>
+        <h1 style={{ margin: 0 }}>Invite delivery status</h1>
       </div>
 
       {loading ? (
-        <div className="text-center py-12">Loading invites...</div>
+        <p className="text-muted">Loading invites…</p>
       ) : invites.length === 0 ? (
-        <div className="card elev-sm text-center" style={{ padding: 'var(--space-8)' }}>
-          No invites sent yet.
-        </div>
+        <p className="text-muted">No invites sent yet.</p>
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Invited by</th>
-              <th>Status</th>
-              <th>Sent</th>
-              <th>Updated</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invites.map((invite) => (
-              <tr key={invite.id}>
-                <td>{invite.email}</td>
-                <td style={{ opacity: 0.65 }}>{invite.invited_by_email || '—'}</td>
-                <td><span className={statusConfig[invite.status]?.tagClass || 'tag tag-neutral'}>{statusConfig[invite.status]?.label || invite.status}</span></td>
-                <td style={{ opacity: 0.65 }}>{new Date(invite.created_at).toLocaleString()}</td>
-                <td style={{ opacity: 0.65 }}>{new Date(invite.updated_at).toLocaleString()}</td>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Invited by</th>
+                <th>Status</th>
+                <th>Sent</th>
+                <th>Updated</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {invites.map((invite) => (
+                <tr key={invite.id}>
+                  <td>{invite.email}</td>
+                  <td style={{ opacity: 0.65 }}>{invite.invited_by_email || '—'}</td>
+                  <td><span className={statusConfig[invite.status]?.tagClass || 'tag tag-neutral'}>{statusConfig[invite.status]?.label || invite.status}</span></td>
+                  <td style={{ opacity: 0.65 }}>{new Date(invite.created_at).toLocaleString()}</td>
+                  <td style={{ opacity: 0.65 }}>{new Date(invite.updated_at).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { Archivo } from 'next/font/google';
+import { Source_Serif_4 } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
@@ -8,7 +8,12 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import AppShell from '@/components/AppShell';
 import { useEffect } from 'react';
 
-const archivo = Archivo({ subsets: ['latin'], weight: ['400', '600', '800'], variable: '--font-archivo' });
+const sourceSerif = Source_Serif_4({
+  subsets: ['latin'],
+  weight: ['400', '600'],
+  style: ['normal', 'italic'],
+  variable: '--font-source-serif',
+});
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -31,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en">
-      <body className={archivo.variable}>
+      <body className={sourceSerif.variable}>
         <AuthProvider>
           <ToastProvider>
             <ErrorBoundary>

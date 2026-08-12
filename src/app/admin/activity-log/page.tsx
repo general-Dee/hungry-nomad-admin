@@ -29,13 +29,13 @@ const tableLabels: Record<string, string> = {
 const actionConfig: Record<ActivityAction, { label: string; tagClass: string }> = {
   insert: { label: 'Created', tagClass: 'tag tag-accent' },
   update: { label: 'Updated', tagClass: 'tag tag-outline' },
-  delete: { label: 'Deleted', tagClass: 'tag tag-outline' },
+  delete: { label: 'Deleted', tagClass: 'tag tag-accent-2' },
 };
 
 const filters = [
   { value: 'all', label: 'All' },
-  { value: 'products', label: 'Menu Items' },
-  { value: 'delivery_zones', label: 'Delivery Zones' },
+  { value: 'products', label: 'Menu items' },
+  { value: 'delivery_zones', label: 'Delivery zones' },
   { value: 'orders', label: 'Orders' },
 ];
 
@@ -129,8 +129,8 @@ export default function ActivityLogPage() {
   return (
     <div>
       <div style={{ marginBottom: 'var(--space-6)' }}>
-        <h1 style={{ margin: 0 }}>Activity Log</h1>
-        <p style={{ margin: 'var(--space-2) 0 0', opacity: 0.65 }}>Record of admin changes to menu items, delivery areas, and orders</p>
+        <div className="card-kicker">Activity log</div>
+        <h1 style={{ margin: 0 }}>Recent changes</h1>
       </div>
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
@@ -148,59 +148,61 @@ export default function ActivityLogPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">Loading activity log...</div>
+        <p className="text-muted">Loading activity…</p>
       ) : filteredLogs.length === 0 ? (
-        <div className="text-center py-12 text-muted">No activity recorded yet.</div>
+        <p className="text-muted">No activity recorded yet.</p>
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>Admin</th>
-              <th>Type</th>
-              <th>Action</th>
-              <th>Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredLogs.map((row) => {
-              const changedFields = row.action === 'update' ? getChangedFields(row) : [];
-              const isExpanded = expandedId === row.id;
-              return (
-                <tr key={row.id}>
-                  <td style={{ opacity: 0.65 }}>{new Date(row.created_at).toLocaleString()}</td>
-                  <td>{row.changed_by_email || 'System'}</td>
-                  <td style={{ opacity: 0.65 }}>{tableLabels[row.table_name] || row.table_name}</td>
-                  <td><span className={actionConfig[row.action].tagClass}>{actionConfig[row.action].label}</span></td>
-                  <td>
-                    <div>
-                      {getSummary(row)}
-                      {changedFields.length > 0 && (
-                        <button
-                          type="button"
-                          className="btn btn-ghost"
-                          style={{ padding: '0 0 0 var(--space-2)', fontSize: 12 }}
-                          onClick={() => setExpandedId(isExpanded ? null : row.id)}
-                        >
-                          {isExpanded ? 'Hide' : `${changedFields.length} field${changedFields.length > 1 ? 's' : ''} changed`}
-                        </button>
-                      )}
-                    </div>
-                    {isExpanded && changedFields.length > 0 && (
-                      <div style={{ marginTop: 'var(--space-2)', fontSize: 12, opacity: 0.75 }}>
-                        {changedFields.map(({ field, from, to }) => (
-                          <div key={field} style={{ padding: '2px 0' }}>
-                            <strong>{field}</strong>: {JSON.stringify(from)} → {JSON.stringify(to)}
-                          </div>
-                        ))}
+        <div style={{ overflowX: 'auto' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Admin</th>
+                <th>Type</th>
+                <th>Action</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredLogs.map((row) => {
+                const changedFields = row.action === 'update' ? getChangedFields(row) : [];
+                const isExpanded = expandedId === row.id;
+                return (
+                  <tr key={row.id}>
+                    <td style={{ opacity: 0.65 }}>{new Date(row.created_at).toLocaleString()}</td>
+                    <td>{row.changed_by_email || 'System'}</td>
+                    <td style={{ opacity: 0.65 }}>{tableLabels[row.table_name] || row.table_name}</td>
+                    <td><span className={actionConfig[row.action].tagClass}>{actionConfig[row.action].label}</span></td>
+                    <td>
+                      <div>
+                        {getSummary(row)}
+                        {changedFields.length > 0 && (
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            style={{ padding: '0 0 0 var(--space-2)', fontSize: 12 }}
+                            onClick={() => setExpandedId(isExpanded ? null : row.id)}
+                          >
+                            {isExpanded ? 'Hide' : `${changedFields.length} field${changedFields.length > 1 ? 's' : ''} changed`}
+                          </button>
+                        )}
                       </div>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                      {isExpanded && changedFields.length > 0 && (
+                        <div style={{ marginTop: 'var(--space-2)', fontSize: 12, opacity: 0.75 }}>
+                          {changedFields.map(({ field, from, to }) => (
+                            <div key={field} style={{ padding: '2px 0' }}>
+                              <strong>{field}</strong>: {JSON.stringify(from)} → {JSON.stringify(to)}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
