@@ -12,6 +12,7 @@ interface Order {
   id: number;
   customer_name: string;
   customer_phone: string;
+  customer_address: string;
   total_amount: number;
   status: string;
   created_at: string;
@@ -55,7 +56,7 @@ export default function OrdersPage() {
   async function fetchOrders() {
     const { data, error } = await supabase
       .from('orders')
-      .select('id, customer_name, customer_phone, total_amount, status, created_at')
+      .select('id, customer_name, customer_phone, customer_address, total_amount, status, created_at')
       .order('created_at', { ascending: false });
     if (error) console.error(error);
     else setOrders(data || []);
@@ -280,6 +281,10 @@ export default function OrdersPage() {
               <div>
                 <div className="text-muted" style={{ fontSize: 11, marginBottom: 2 }}>Placed</div>
                 <div>{new Date(viewingOrder.created_at).toLocaleString()}</div>
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <div className="text-muted" style={{ fontSize: 11, marginBottom: 2 }}>Delivery address</div>
+                <div>{viewingOrder.customer_address}</div>
               </div>
             </div>
             <div className="field">
