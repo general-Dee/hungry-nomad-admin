@@ -13,9 +13,17 @@ interface Order {
   customer_name: string;
   customer_phone: string;
   customer_address: string;
+  delivery_lga: string;
   total_amount: number;
   status: string;
   created_at: string;
+}
+
+interface OrderItem {
+  product_id: number;
+  quantity: number;
+  price_at_time: number;
+  products: { name: string } | null;
 }
 
 const statusConfig: Record<string, { label: string; tagClass: string }> = {
@@ -43,6 +51,8 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
   const [viewingOrderId, setViewingOrderId] = useState<number | null>(null);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [orderItemsLoading, setOrderItemsLoading] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -53,10 +63,37 @@ export default function OrdersPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  useEffect(() => {
+    if (viewingOrderId === null) {
+      setOrderItems([]);
+      return;
+    }
+    let cancelled = false;
+    setOrderItemsLoading(true);
+    supabase
+      .from('order_items')
+      .select('product_id, quantity, price_at_time, products ( name )')
+      .eq('order_id', viewingOrderId)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error(error);
+          showToast(`Failed to load order items: ${error.message}`, 'error');
+          setOrderItems([]);
+        } else {
+          setOrderItems((data as unknown as OrderItem[]) || []);
+        }
+        setOrderItemsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewingOrderId, showToast]);
+
   async function fetchOrders() {
     const { data, error } = await supabase
       .from('orders')
-      .select('id, customer_name, customer_phone, customer_address, total_amount, status, created_at')
+      .select('id, customer_name, customer_phone, customer_address, delivery_lga, total_amount, status, created_at')
       .order('created_at', { ascending: false });
     if (error) console.error(error);
     else setOrders(data || []);
@@ -262,7 +299,12 @@ export default function OrdersPage() {
         </div>
       )}
 
-      <Dialog open={viewingOrder !== null} onClose={() => setViewingOrderId(null)} title={viewingOrder ? `Order #${viewingOrder.id}` : ''}>
+      <Dialog
+        open={viewingOrder !== null}
+        onClose={() => setViewingOrderId(null)}
+        title={viewingOrder ? `Order #${viewingOrder.id}` : ''}
+        className="max-w-[560px] max-h-[90vh] overflow-y-auto"
+      >
         {viewingOrder && (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
@@ -284,8 +326,38 @@ export default function OrdersPage() {
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <div className="text-muted" style={{ fontSize: 11, marginBottom: 2 }}>Delivery address</div>
-                <div>{viewingOrder.customer_address}</div>
+                <div>
+                  {viewingOrder.customer_address}
+                  {viewingOrder.delivery_lga ? `, ${viewingOrder.delivery_lga}` : ''}
+                </div>
               </div>
+            </div>
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <div className="text-muted" style={{ fontSize: 11, marginBottom: 2 }}>Order items</div>
+              {orderItemsLoading ? (
+                <p className="text-muted" style={{ fontSize: 13, margin: 0 }}>Loading items…</p>
+              ) : orderItems.length === 0 ? (
+                <p className="text-muted" style={{ fontSize: 13, margin: 0 }}>No items recorded for this order.</p>
+              ) : (
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th style={{ textAlign: 'right' }}>Qty</th>
+                      <th style={{ textAlign: 'right' }}>Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orderItems.map((item, i) => (
+                      <tr key={i}>
+                        <td>{item.products?.name ?? 'Unknown item'}</td>
+                        <td style={{ textAlign: 'right' }}>{item.quantity}</td>
+                        <td style={{ textAlign: 'right' }}>₦{(item.price_at_time * item.quantity).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
             <div className="field">
               <label htmlFor="order-detail-status">Status</label>
