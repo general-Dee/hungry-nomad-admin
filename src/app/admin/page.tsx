@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useAdminAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { supabase } from '@/lib/supabaseClient';
@@ -154,6 +155,11 @@ export default function AdminDashboard() {
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
               />
+            </div>
+            <div style={{ textAlign: 'right', marginBottom: 'var(--space-3)' }}>
+              <Link href="/admin/forgot-password" className="text-muted" style={{ fontSize: 13 }}>
+                Forgot password?
+              </Link>
             </div>
             {error && <p style={{ color: 'var(--color-accent)', fontSize: 13, marginBottom: 'var(--space-3)' }}>{error}</p>}
             <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
