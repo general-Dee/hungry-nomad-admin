@@ -9,6 +9,8 @@ vi.mock('@/lib/supabaseAdmin', () => ({
 
 import { POST } from './route';
 
+const MIN_RESPONSE_MS = 800;
+
 function makeRequest(body: unknown) {
   return new Request('http://localhost:3000/api/admin/forgot-password', {
     method: 'POST',
@@ -16,11 +18,20 @@ function makeRequest(body: unknown) {
   });
 }
 
+// Every non-400 response is padded to MIN_RESPONSE_MS via a real setTimeout, so
+// fake timers drive that delay forward instead of the test actually waiting.
+async function postAndFlush(body: unknown) {
+  const responsePromise = POST(makeRequest(body));
+  await vi.advanceTimersByTimeAsync(MIN_RESPONSE_MS + 200);
+  return responsePromise;
+}
+
 describe('POST /api/admin/forgot-password', () => {
   const ORIGINAL_ENV = process.env;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
     vi.stubGlobal('fetch', vi.fn());
     process.env = {
       ...ORIGINAL_ENV,
@@ -32,6 +43,7 @@ describe('POST /api/admin/forgot-password', () => {
   afterEach(() => {
     process.env = ORIGINAL_ENV;
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it('returns 400 when email is missing', async () => {
@@ -64,7 +76,7 @@ describe('POST /api/admin/forgot-password', () => {
       json: async () => ({ id: 'resend-email-1' }),
     });
 
-    const response = await POST(makeRequest({ email: 'admin@example.com' }));
+    const response = await postAndFlush({ email: 'admin@example.com' });
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ success: true });
@@ -91,7 +103,7 @@ describe('POST /api/admin/forgot-password', () => {
       error: { code: 'user_not_found', message: 'User not found' },
     });
 
-    const response = await POST(makeRequest({ email: 'nobody@example.com' }));
+    const response = await postAndFlush({ email: 'nobody@example.com' });
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ success: true });
@@ -99,10 +111,34 @@ describe('POST /api/admin/forgot-password', () => {
     expect(errorSpy).toHaveBeenCalled();
   });
 
+  // This is the core of the timing-side-channel fix: the "user not found" path
+  // short-circuits after a single generateLink call, with no Resend round-trip --
+  // without padding, it would resolve near-instantly while a found-user request
+  // is still waiting on Resend. Confirm the response stays pending until the
+  // minimum duration has actually elapsed.
+  it('pads the response so an unknown email is not answered faster than the minimum duration', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    supabaseAdminMock.auth.admin.generateLink.mockResolvedValue({
+      data: null,
+      error: { code: 'user_not_found', message: 'User not found' },
+    });
+
+    let resolved = false;
+    POST(makeRequest({ email: 'nobody@example.com' })).then(() => {
+      resolved = true;
+    });
+
+    await vi.advanceTimersByTimeAsync(MIN_RESPONSE_MS - 200);
+    expect(resolved).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(400);
+    expect(resolved).toBe(true);
+  });
+
   it('returns 500 and does not call generateLink when Resend is not configured', async () => {
     delete process.env.RESEND_API_KEY;
 
-    const response = await POST(makeRequest({ email: 'admin@example.com' }));
+    const response = await postAndFlush({ email: 'admin@example.com' });
 
     expect(response.status).toBe(500);
     const body = await response.json();
@@ -122,7 +158,7 @@ describe('POST /api/admin/forgot-password', () => {
       json: async () => ({ message: 'invalid from address' }),
     });
 
-    const response = await POST(makeRequest({ email: 'admin@example.com' }));
+    const response = await postAndFlush({ email: 'admin@example.com' });
 
     expect(response.status).toBe(502);
     const body = await response.json();
