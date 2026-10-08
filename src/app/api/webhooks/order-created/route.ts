@@ -41,10 +41,15 @@ export async function POST(request: Request) {
 
   const payload = (await request.json().catch(() => null)) as DatabaseWebhookPayload | null;
   const order = payload?.record;
-  if (payload?.type !== 'INSERT' || payload?.table !== 'orders' || !order) {
-    // Not the shape we expect -- ack rather than error, since retrying
-    // wouldn't change a malformed/unexpected payload.
-    return NextResponse.json({ received: true });
+  const becamePaid =
+    payload?.type === 'UPDATE' &&
+    payload?.table === 'orders' &&
+    order?.status === 'paid' &&
+    payload?.old_record?.status !== 'paid';
+  if (!becamePaid || !order) {
+    // Inserts stay pending until Paystack confirms. Ack them so the
+    // database webhook does not retry a notification we intentionally skip.
+    return NextResponse.json({ received: true, skipped: true });
   }
 
   const apiKey = process.env.TERMII_API_KEY;
@@ -62,8 +67,8 @@ export async function POST(request: Request) {
   }
 
   const body =
-    `New order #${order.id} from ${order.customer_name} (${order.customer_phone}) -- ` +
-    `₦${order.total_amount.toLocaleString()} -- status: ${order.status}`;
+    `Paid order #${order.id} from ${order.customer_name} (${order.customer_phone}) -- ` +
+    `₦${order.total_amount.toLocaleString()} -- status: paid`;
 
   const termiiUrl = 'https://api.ng.termii.com/api/sms/send';
 

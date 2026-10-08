@@ -15,6 +15,7 @@ const navigation = [
   { name: 'Menu', href: '/admin/menu' },
   { name: 'Delivery Areas', href: '/admin/delivery-areas' },
   { name: 'Admin Invites', href: '/admin/invites' },
+  { name: 'Hours', href: '/admin/settings' },
   { name: 'Activity Log', href: '/admin/activity-log' },
 ];
 
