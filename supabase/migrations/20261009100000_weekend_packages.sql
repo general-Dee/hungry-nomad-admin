@@ -2,6 +2,8 @@
 -- Weekend packages the admin can toggle and edit. Each package has a linked
 -- product so checkout can price it the same way as a menu item.
 
+alter table public.products add column if not exists is_available boolean not null default true;
+
 alter table public.products drop constraint if exists products_category_check;
 
 insert into public.products (name, description, price, category, image_url, is_available)
