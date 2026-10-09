@@ -19,10 +19,18 @@ interface Coupon {
   ends_at: string | null;
 }
 
-const empty = {
+const empty: {
+  code: string;
+  description: string;
+  discount_type: 'percent' | 'fixed';
+  discount_value: number;
+  min_subtotal: number;
+  max_uses: string;
+  ends_at: string;
+} = {
   code: '',
   description: '',
-  discount_type: 'percent' as const,
+  discount_type: 'percent',
   discount_value: 10,
   min_subtotal: 0,
   max_uses: '',
@@ -93,7 +101,7 @@ export default function CouponsPage() {
         <input className="input" placeholder="Code, e.g. WEEKEND10" value={draft.code} onChange={(e) => setDraft({ ...draft, code: e.target.value })} required />
         <input className="input" placeholder="Description" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <select className="input" value={draft.discount_type} onChange={(e) => setDraft({ ...draft, discount_type: e.target.value as 'percent' | 'fixed' })}>
+          <select className="input" value={draft.discount_type} onChange={(e) => setDraft({ ...draft, discount_type: e.target.value === 'fixed' ? 'fixed' : 'percent' })}>
             <option value="percent">Percent off</option>
             <option value="fixed">Fixed naira off</option>
           </select>
