@@ -86,6 +86,17 @@ export default function MenuPage() {
     };
   }, [isAuthenticated, fetchProducts]);
 
+
+  async function setAvailability(id: number, available: boolean) {
+    const { error } = await supabase.from('products').update({ is_available: available }).eq('id', id);
+    if (error) {
+      showToast(`Could not update availability: ${error.message}`, 'error');
+      return;
+    }
+    showToast(available ? 'Item is available' : 'Item marked temporarily unavailable', 'success');
+    fetchProducts();
+  }
+
   async function deleteProduct(id: number) {
     if (!confirm('Delete this item?')) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
@@ -345,7 +356,16 @@ export default function MenuPage() {
               <button type="button" className="btn btn-secondary" onClick={closeModal}>
                 Cancel
               </button>
-              <button type="button" className="btn btn-primary" onClick={handleSaveWithUpload} disabled={uploading}>
+              
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+              <input
+                type="checkbox"
+                checked={editing.is_available !== false}
+                onChange={(e) => setEditing({ ...editing, is_available: e.target.checked })}
+              />
+              Available to order
+            </label>
+            <button type="button" className="btn btn-primary" onClick={handleSaveWithUpload} disabled={uploading}>
                 {uploading ? 'Uploading...' : 'Save'}
               </button>
             </div>
@@ -403,12 +423,7 @@ export default function MenuPage() {
                       type="button"
                       className="btn btn-ghost"
                       style={{ padding: '4px 10px', fontSize: 12 }}
-                      onClick={async () => {
-                        const next = product.is_available === false;
-                        const { error } = await supabase.from('products').update({ is_available: next }).eq('id', product.id);
-                        if (error) showToast(`Could not update availability: ${error.message}`, 'error');
-                        else fetchProducts();
-                      }}
+                      onClick={() => setAvailability(product.id, product.is_available === false)}
                     >
                       {product.is_available === false ? 'Sold out' : 'Available'}
                     </button>
