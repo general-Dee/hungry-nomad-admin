@@ -14,6 +14,7 @@ interface Order {
   customer_phone: string;
   customer_address: string;
   delivery_lga: string;
+  customer_note?: string | null;
   total_amount: number;
   status: string;
   created_at: string;
@@ -93,15 +94,26 @@ export default function OrdersPage() {
   async function fetchOrders() {
     const { data, error } = await supabase
       .from('orders')
-      .select('id, customer_name, customer_phone, customer_address, delivery_lga, total_amount, status, created_at')
+      .select('id, customer_name, customer_phone, customer_address, delivery_lga, customer_note, total_amount, status, created_at')
       .order('created_at', { ascending: false });
     if (error) console.error(error);
     else setOrders(data || []);
     setLoading(false);
   }
 
+  function allowedNextStatuses(current: string): string[] {
+    if (current === 'paid') return ['delivered'];
+    if (current === 'pending') return ['failed'];
+    return [];
+  }
+
   async function updateStatus(orderId: number, newStatus: string) {
-    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+    const current = orders.find((o) => o.id === orderId)?.status;
+    if (!current || !allowedNextStatuses(current).includes(newStatus)) {
+      showToast('That status change is not allowed. Paid is set only by Paystack.', 'error');
+      return;
+    }
+    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId).eq('status', current);
     if (error) {
       showToast(`Failed to update order status: ${error.message}`, 'error');
     } else {
@@ -109,13 +121,18 @@ export default function OrdersPage() {
     }
   }
 
-  async function bulkUpdateStatus(newStatus: string) {
-    const { error } = await supabase.from('orders').update({ status: newStatus }).in('id', selectedOrderIds);
+  async function bulkUpdateStatus(newStatus: 'delivered' | 'failed') {
+    const eligible = orders.filter((o) => selectedOrderIds.includes(o.id) && allowedNextStatuses(o.status).includes(newStatus));
+    if (eligible.length === 0) {
+      showToast(newStatus === 'delivered' ? 'Only paid orders can be marked delivered.' : 'Only pending orders can be marked failed.', 'error');
+      return;
+    }
+    const { error } = await supabase.from('orders').update({ status: newStatus }).in('id', eligible.map((o) => o.id)).eq('status', newStatus === 'delivered' ? 'paid' : 'pending');
     if (error) {
       showToast(`Failed to update orders: ${error.message}`, 'error');
       return;
     }
-    showToast(`${selectedOrderIds.length} order${selectedOrderIds.length === 1 ? '' : 's'} marked ${newStatus}`, 'success');
+    showToast(`${eligible.length} order${eligible.length === 1 ? '' : 's'} marked ${newStatus}`, 'success');
     setSelectedOrderIds([]);
     fetchOrders();
   }
@@ -186,8 +203,8 @@ export default function OrdersPage() {
         {selectedOrderIds.length > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
             <span style={{ fontSize: 14 }}>{selectedOrderIds.length} selected</span>
-            <button type="button" className="btn btn-secondary" onClick={() => bulkUpdateStatus('paid')}>Mark paid</button>
             <button type="button" className="btn btn-secondary" onClick={() => bulkUpdateStatus('delivered')}>Mark delivered</button>
+            <button type="button" className="btn btn-secondary" onClick={() => bulkUpdateStatus('failed')}>Mark failed</button>
             <button type="button" className="btn btn-ghost" onClick={() => setSelectedOrderIds([])}>Clear</button>
           </div>
         ) : (
@@ -274,12 +291,13 @@ export default function OrdersPage() {
                         className="input"
                         value={order.status}
                         onChange={(e) => updateStatus(order.id, e.target.value)}
+                        disabled={allowedNextStatuses(order.status).length === 0}
                         style={{ padding: '6px 10px', fontSize: 13 }}
                       >
-                        <option value="pending">Pending</option>
-                        <option value="paid">Paid</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="failed">Failed</option>
+                        <option value={order.status}>{statusConfig[order.status]?.label || order.status}</option>
+                        {allowedNextStatuses(order.status).map((status) => (
+                          <option key={status} value={status}>{statusConfig[status]?.label || status}</option>
+                        ))}
                       </select>
                       <button
                         type="button"
@@ -331,6 +349,12 @@ export default function OrdersPage() {
                   {viewingOrder.delivery_lga ? `, ${viewingOrder.delivery_lga}` : ''}
                 </div>
               </div>
+              {viewingOrder.customer_note ? (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <div className="text-muted" style={{ fontSize: 11, marginBottom: 2 }}>Kitchen note</div>
+                  <div>{viewingOrder.customer_note}</div>
+                </div>
+              ) : null}
             </div>
             <div style={{ marginBottom: 'var(--space-4)' }}>
               <div className="text-muted" style={{ fontSize: 11, marginBottom: 2 }}>Order items</div>
@@ -369,13 +393,15 @@ export default function OrdersPage() {
                 className="input"
                 value={viewingOrder.status}
                 onChange={(e) => updateStatus(viewingOrder.id, e.target.value)}
+                disabled={allowedNextStatuses(viewingOrder.status).length === 0}
                 style={{ marginTop: 'var(--space-2)' }}
               >
-                <option value="pending">Pending</option>
-                <option value="paid">Paid</option>
-                <option value="delivered">Delivered</option>
-                <option value="failed">Failed</option>
+                <option value={viewingOrder.status}>{statusConfig[viewingOrder.status]?.label || viewingOrder.status}</option>
+                {allowedNextStatuses(viewingOrder.status).map((status) => (
+                  <option key={status} value={status}>{statusConfig[status]?.label || status}</option>
+                ))}
               </select>
+              <p className="text-muted" style={{ fontSize: 12, marginTop: 6 }}>Paid is set only after Paystack verifies the charge. Staff can mark paid orders delivered, or pending orders failed.</p>
             </div>
             <div className="dialog-actions">
               <button type="button" className="btn btn-secondary" onClick={() => setViewingOrderId(null)}>Close</button>

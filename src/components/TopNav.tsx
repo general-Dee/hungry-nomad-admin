@@ -13,8 +13,10 @@ const navigation = [
   { name: 'Dashboard', href: '/admin' },
   { name: 'Orders', href: '/admin/orders' },
   { name: 'Menu', href: '/admin/menu' },
+  { name: 'Weekend packages', href: '/admin/weekend' },
   { name: 'Delivery Areas', href: '/admin/delivery-areas' },
   { name: 'Admin Invites', href: '/admin/invites' },
+  { name: 'Hours', href: '/admin/settings' },
   { name: 'Activity Log', href: '/admin/activity-log' },
 ];
 

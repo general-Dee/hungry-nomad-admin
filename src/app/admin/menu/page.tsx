@@ -17,6 +17,7 @@ interface Product {
   category: string;
   subcategory?: string;
   image_url: string;
+  is_available?: boolean;
 }
 
 const categories = [
@@ -84,6 +85,17 @@ export default function MenuPage() {
       supabase.removeChannel(channel);
     };
   }, [isAuthenticated, fetchProducts]);
+
+
+  async function setAvailability(id: number, available: boolean) {
+    const { error } = await supabase.from('products').update({ is_available: available }).eq('id', id);
+    if (error) {
+      showToast(`Could not update availability: ${error.message}`, 'error');
+      return;
+    }
+    showToast(available ? 'Item is available' : 'Item marked temporarily unavailable', 'success');
+    fetchProducts();
+  }
 
   async function deleteProduct(id: number) {
     if (!confirm('Delete this item?')) return;
@@ -215,6 +227,7 @@ export default function MenuPage() {
               price: 0,
               category: 'fast_food',
               subcategory: '',
+              is_available: true,
               image_url: '',
             })
           }
@@ -343,7 +356,16 @@ export default function MenuPage() {
               <button type="button" className="btn btn-secondary" onClick={closeModal}>
                 Cancel
               </button>
-              <button type="button" className="btn btn-primary" onClick={handleSaveWithUpload} disabled={uploading}>
+              
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+              <input
+                type="checkbox"
+                checked={editing.is_available !== false}
+                onChange={(e) => setEditing({ ...editing, is_available: e.target.checked })}
+              />
+              Available to order
+            </label>
+            <button type="button" className="btn btn-primary" onClick={handleSaveWithUpload} disabled={uploading}>
                 {uploading ? 'Uploading...' : 'Save'}
               </button>
             </div>
@@ -369,6 +391,7 @@ export default function MenuPage() {
                 <th style={{ textAlign: 'right' }}>Price</th>
                 <th>Category</th>
                 <th>Subcategory</th>
+                <th>Available</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -395,6 +418,16 @@ export default function MenuPage() {
                   <td style={{ textAlign: 'right' }}>₦{product.price.toLocaleString()}</td>
                   <td><span className="tag tag-neutral">{categories.find((c) => c.value === product.category)?.label || product.category}</span></td>
                   <td style={{ opacity: 0.65 }}>{product.subcategory || '—'}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      style={{ padding: '4px 10px', fontSize: 12 }}
+                      onClick={() => setAvailability(product.id, product.is_available === false)}
+                    >
+                      {product.is_available === false ? 'Sold out' : 'Available'}
+                    </button>
+                  </td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     <button type="button" className="btn btn-ghost btn-icon" title="Edit" aria-label={`Edit ${product.name}`} onClick={() => setEditing(product)}>
                       <PencilSimple size={15} weight="duotone" />

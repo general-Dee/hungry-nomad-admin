@@ -46,6 +46,15 @@ export async function POST(request: Request) {
     email,
     options: { redirectTo: `${origin}/admin` },
   });
+  if (!linkError && linkData?.user?.id) {
+    const { error: roleError } = await admin.auth.admin.updateUserById(linkData.user.id, {
+      app_metadata: { role: 'staff' },
+    });
+    if (roleError) {
+      console.error('Failed to set staff role on invited user', roleError);
+    }
+  }
+
   if (linkError || !linkData?.properties?.hashed_token) {
     if (linkError?.code === 'email_exists') {
       return NextResponse.json({ error: 'This person already has admin access.' }, { status: 409 });

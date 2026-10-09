@@ -33,6 +33,17 @@ function insertPayload(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function paidPayload(overrides: Record<string, unknown> = {}) {
+  return {
+    type: 'UPDATE',
+    table: 'orders',
+    schema: 'public',
+    record: { ...order, status: 'paid' },
+    old_record: { ...order, status: 'pending' },
+    ...overrides,
+  };
+}
+
 describe('POST /api/webhooks/order-created', () => {
   const ORIGINAL_ENV = process.env;
 
@@ -60,7 +71,7 @@ describe('POST /api/webhooks/order-created', () => {
   it('returns 500 when ORDER_SMS_WEBHOOK_SECRET is not configured', async () => {
     delete process.env.ORDER_SMS_WEBHOOK_SECRET;
 
-    const response = await POST(makeRequest(insertPayload()));
+    const response = await POST(makeRequest(paidPayload()));
 
     expect(response.status).toBe(500);
     expect(fetch).not.toHaveBeenCalled();
@@ -94,11 +105,11 @@ describe('POST /api/webhooks/order-created', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('acks 200 without calling Termii when the payload is not an orders INSERT', async () => {
-    const response = await POST(makeRequest(insertPayload({ type: 'UPDATE' })));
+  it('acks 200 without calling Termii when the payload is not a paid order update', async () => {
+    const response = await POST(makeRequest(paidPayload({ type: 'UPDATE', record: order, old_record: order })));
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ received: true });
+    expect(await response.json()).toEqual({ received: true, skipped: true });
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -112,7 +123,7 @@ describe('POST /api/webhooks/order-created', () => {
   it('returns 500 when Termii env vars are missing', async () => {
     delete process.env.TERMII_API_KEY;
 
-    const response = await POST(makeRequest(insertPayload()));
+    const response = await POST(makeRequest(paidPayload()));
 
     expect(response.status).toBe(500);
     expect(fetch).not.toHaveBeenCalled();
@@ -121,14 +132,14 @@ describe('POST /api/webhooks/order-created', () => {
   it('returns 500 when STAFF_NOTIFICATION_PHONE_NUMBERS is empty after parsing', async () => {
     process.env.STAFF_NOTIFICATION_PHONE_NUMBERS = ' , ,';
 
-    const response = await POST(makeRequest(insertPayload()));
+    const response = await POST(makeRequest(paidPayload()));
 
     expect(response.status).toBe(500);
     expect(fetch).not.toHaveBeenCalled();
   });
 
   it('sends one Termii request per staff number with the right JSON body', async () => {
-    const response = await POST(makeRequest(insertPayload()));
+    const response = await POST(makeRequest(paidPayload()));
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ received: true, sent: 2, failed: 0 });
@@ -156,7 +167,7 @@ describe('POST /api/webhooks/order-created', () => {
       .mockResolvedValueOnce({ ok: false, statusText: 'Bad Request', json: async () => ({ message: 'invalid number' }) });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const response = await POST(makeRequest(insertPayload()));
+    const response = await POST(makeRequest(paidPayload()));
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ received: true, sent: 1, failed: 1 });
@@ -172,7 +183,7 @@ describe('POST /api/webhooks/order-created', () => {
     });
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const response = await POST(makeRequest(insertPayload()));
+    const response = await POST(makeRequest(paidPayload()));
 
     expect(response.status).toBe(500);
   });

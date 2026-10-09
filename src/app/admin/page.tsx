@@ -39,6 +39,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [paidCount, setPaidCount] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
@@ -49,8 +50,14 @@ export default function AdminDashboard() {
     const { count: pending, error: pendingError } = await supabase
       .from('orders')
       .select('*', { count: 'exact', head: true })
-      .in('status', ['pending', 'paid']);
+      .eq('status', 'pending');
     setPendingCount(pending || 0);
+
+    const { count: paidOpen, error: paidError } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'paid');
+    setPaidCount(paidOpen || 0);
 
     const { count: totalOrd, error: totalError } = await supabase
       .from('orders')
@@ -61,7 +68,7 @@ export default function AdminDashboard() {
     const { data: todayOrders, error: todayError } = await supabase
       .from('orders')
       .select('total_amount')
-      .eq('status', 'paid')
+      .in('status', ['paid', 'delivered'])
       .gte('created_at', `${today}T00:00:00`)
       .lt('created_at', `${today}T23:59:59`);
     const total = todayOrders?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
@@ -76,7 +83,7 @@ export default function AdminDashboard() {
 
     setLastUpdated(new Date());
 
-    const firstError = pendingError || totalError || todayError || recentError;
+    const firstError = pendingError || paidError || totalError || todayError || recentError;
     if (firstError) {
       console.error('Failed to fetch dashboard stats:', firstError);
       showToast('Failed to refresh some dashboard stats', 'error');
@@ -188,7 +195,7 @@ export default function AdminDashboard() {
 
       <div
         style={{
-          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-6)',
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-6)',
           paddingBottom: 'var(--space-6)', marginBottom: 'var(--space-8)',
           borderBottom: '1px solid var(--color-divider)',
         }}
@@ -200,9 +207,15 @@ export default function AdminDashboard() {
           </div>
         </div>
         <div>
-          <div className="text-muted" style={{ fontSize: 12, marginBottom: 'var(--space-1)' }}>Pending Orders</div>
+          <div className="text-muted" style={{ fontSize: 12, marginBottom: 'var(--space-1)' }}>Unpaid</div>
           <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)', fontSize: 40 }}>
             {pendingCount}
+          </div>
+        </div>
+        <div>
+          <div className="text-muted" style={{ fontSize: 12, marginBottom: 'var(--space-1)' }}>Paid, not delivered</div>
+          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)', fontSize: 40 }}>
+            {paidCount}
           </div>
         </div>
         <div>
