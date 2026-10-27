@@ -11,7 +11,7 @@ vi.mock('@supabase/ssr', () => ({
 
 import { middleware } from './middleware';
 
-const PROTECTED_SUB_PATHS = ['/admin/orders', '/admin/menu', '/admin/delivery-areas', '/admin/invites'];
+const PROTECTED_SUB_PATHS = ['/admin/orders', '/admin/menu', '/admin/categories', '/admin/delivery-areas', '/admin/invites'];
 
 describe('middleware', () => {
   beforeEach(() => {

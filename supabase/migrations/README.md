@@ -34,3 +34,12 @@ directly with no renaming.
 ## Applying to a fresh project
 
 Run every file in this directory, in filename order, in the SQL Editor.
+
+## Pending (not yet applied to live)
+
+- `20261027120000_editable_categories.sql` -- adds `public.categories` and
+  `products.category_id` (seeded and backfilled from `products.category`,
+  idempotent, safe to re-run). Admin code works with or without it: before it
+  is applied the Categories page shows a "migration pending" banner and items
+  can still be edited and moved between the built-in categories. Rollback
+  steps are in the file header.
