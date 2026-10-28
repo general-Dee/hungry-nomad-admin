@@ -12,6 +12,7 @@ interface Order {
   id: number;
   customer_name: string;
   customer_phone: string;
+  customer_email?: string | null;
   customer_address: string;
   delivery_lga: string;
   customer_note?: string | null;
@@ -25,6 +26,13 @@ interface OrderItem {
   quantity: number;
   price_at_time: number;
   products: { name: string } | null;
+}
+
+// Quote a CSV cell when it contains a delimiter, quote or newline; null/undefined become empty.
+function csvCell(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  return /[",\r\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
 }
 
 const statusConfig: Record<string, { label: string; tagClass: string }> = {
@@ -94,7 +102,7 @@ export default function OrdersPage() {
   async function fetchOrders() {
     const { data, error } = await supabase
       .from('orders')
-      .select('id, customer_name, customer_phone, customer_address, delivery_lga, customer_note, total_amount, status, created_at')
+      .select('id, customer_name, customer_phone, customer_email, customer_address, delivery_lga, customer_note, total_amount, status, created_at')
       .order('created_at', { ascending: false });
     if (error) console.error(error);
     else setOrders(data || []);
@@ -138,16 +146,17 @@ export default function OrdersPage() {
   }
 
   const exportToCSV = () => {
-    const headers = ['ID', 'Customer', 'Phone', 'Amount (₦)', 'Status', 'Date'];
+    const headers = ['ID', 'Customer', 'Phone', 'Email', 'Amount (₦)', 'Status', 'Date'];
     const rows = orders.map(order => [
       order.id,
       order.customer_name,
       order.customer_phone,
+      order.customer_email ?? '',
       order.total_amount,
       order.status,
       new Date(order.created_at).toLocaleDateString(),
     ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const csvContent = [headers, ...rows].map(row => row.map(csvCell).join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -157,11 +166,13 @@ export default function OrdersPage() {
     URL.revokeObjectURL(url);
   };
 
+  const normalizedSearch = searchTerm.toLowerCase();
   const filteredOrders = orders
     .filter(order => statusFilter === 'all' || order.status === statusFilter)
     .filter(order =>
-      order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer_phone.includes(searchTerm)
+      (order.customer_name ?? '').toLowerCase().includes(normalizedSearch) ||
+      (order.customer_phone ?? '').includes(searchTerm) ||
+      (order.customer_email ?? '').toLowerCase().includes(normalizedSearch)
     );
 
   const allFilteredSelected = filteredOrders.length > 0 && filteredOrders.every((o) => selectedOrderIds.includes(o.id));
@@ -225,7 +236,7 @@ export default function OrdersPage() {
         <input
           className="input"
           type="text"
-          placeholder="Search by name or phone…"
+          placeholder="Search by name, phone or email…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{ maxWidth: 300 }}
@@ -333,6 +344,16 @@ export default function OrdersPage() {
               <div>
                 <div className="text-muted" style={{ fontSize: 11, marginBottom: 2 }}>Phone</div>
                 <div>{viewingOrder.customer_phone}</div>
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <div className="text-muted" style={{ fontSize: 11, marginBottom: 2 }}>Email</div>
+                {viewingOrder.customer_email?.trim() ? (
+                  <a href={`mailto:${encodeURIComponent(viewingOrder.customer_email.trim()).replace(/%40/g, '@')}`} style={{ wordBreak: 'break-all' }}>
+                    {viewingOrder.customer_email.trim()}
+                  </a>
+                ) : (
+                  <div className="text-muted">Not provided</div>
+                )}
               </div>
               <div>
                 <div className="text-muted" style={{ fontSize: 11, marginBottom: 2 }}>Amount</div>
