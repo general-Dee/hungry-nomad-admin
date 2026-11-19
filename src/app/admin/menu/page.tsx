@@ -397,7 +397,6 @@ export default function MenuPage() {
               {(previewUrl || editing.image_url) && (
                 <div className="mt-2 relative w-32 h-32 overflow-hidden" style={{ border: '1px solid var(--color-divider)' }}>
                   <Image
-                    unoptimized
                     src={previewUrl || editing.image_url}
                     alt="Preview"
                     fill
@@ -465,7 +464,7 @@ export default function MenuPage() {
                   <td>
                     <div className="halftone relative w-11 h-11 overflow-hidden" style={{ border: '1px solid var(--color-divider)' }}>
                       {product.image_url && (
-                        <Image unoptimized src={product.image_url} alt={product.name} fill className="object-cover" sizes="44px" />
+                        <Image src={product.image_url} alt={product.name} fill className="object-cover" sizes="44px" />
                       )}
                     </div>
                   </td>
