@@ -181,90 +181,84 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+    <div className="fade-up">
+      <div className="dash-head">
         <div>
           <div className="card-kicker">Overview</div>
           <h1 style={{ margin: 0 }}>Dashboard</h1>
-          <p style={{ margin: 'var(--space-1) 0 0', fontSize: 12, opacity: 0.5 }}>
+          <p className="text-muted" style={{ margin: 'var(--space-1) 0 0', fontSize: 12 }}>
             Last updated: {lastUpdated.toLocaleTimeString()}
           </p>
         </div>
-        <button type="button" className="btn btn-ghost btn-icon" aria-label="Refresh" onClick={fetchStats}>
-          <ArrowsClockwise size={16} weight="duotone" />
+        <button type="button" className="btn btn-ghost btn-icon refresh-btn" aria-label="Refresh" onClick={fetchStats}>
+          <ArrowsClockwise size={18} weight="duotone" />
         </button>
       </div>
 
-      <div
-        style={{
-          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-6)',
-          paddingBottom: 'var(--space-6)', marginBottom: 'var(--space-8)',
-          borderBottom: '1px solid var(--color-divider)',
-        }}
-      >
-        <div>
-          <div className="text-muted" style={{ fontSize: 12, marginBottom: 'var(--space-1)' }}>Today&apos;s Revenue</div>
-          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)', fontSize: 40, color: 'var(--color-accent-700)' }}>
-            ₦{totalRevenue.toLocaleString()}
-          </div>
+      <div className="stat-grid">
+        <div className="stat-card">
+          <div className="stat-label">Today&apos;s Revenue</div>
+          <div className="stat-value accent">₦{totalRevenue.toLocaleString()}</div>
         </div>
-        <div>
-          <div className="text-muted" style={{ fontSize: 12, marginBottom: 'var(--space-1)' }}>Unpaid</div>
-          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)', fontSize: 40 }}>
-            {pendingCount}
-          </div>
+        <div className="stat-card">
+          <div className="stat-label">Unpaid</div>
+          <div className="stat-value">{pendingCount}</div>
         </div>
-        <div>
-          <div className="text-muted" style={{ fontSize: 12, marginBottom: 'var(--space-1)' }}>Paid, not delivered</div>
-          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)', fontSize: 40 }}>
-            {paidCount}
-          </div>
+        <div className="stat-card">
+          <div className="stat-label">Paid, not delivered</div>
+          <div className="stat-value">{paidCount}</div>
         </div>
-        <div>
-          <div className="text-muted" style={{ fontSize: 12, marginBottom: 'var(--space-1)' }}>Total Orders</div>
-          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)', fontSize: 40 }}>
-            {totalOrders}
-          </div>
+        <div className="stat-card">
+          <div className="stat-label">Total Orders</div>
+          <div className="stat-value">{totalOrders}</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
-        <h2 style={{ fontSize: 16, margin: 0 }}>Sales, {rangeHeading(range)}</h2>
-        <div className="seg" role="radiogroup" aria-label="Range">
-          {SALES_RANGES.map((r) => (
-            <label key={r.value} className="seg-opt">
-              <input type="radio" name="range" checked={range === r.value} onChange={() => setRange(r.value)} />
-              {r.label}
-            </label>
-          ))}
+      <section className="section-card">
+        <div className="section-head">
+          <h2>Sales, {rangeHeading(range)}</h2>
+          <div className="seg" role="radiogroup" aria-label="Range">
+            {SALES_RANGES.map((r) => (
+              <label key={r.value} className="seg-opt">
+                <input type="radio" name="range" checked={range === r.value} onChange={() => setRange(r.value)} />
+                {r.label}
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
-      <SalesChart range={range} />
+        <div className="chart-fade">
+          <SalesChart range={range} />
+        </div>
+      </section>
 
-      <h2 style={{ fontSize: 16, margin: 'var(--space-8) 0 var(--space-4)' }}>Recent orders</h2>
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Order</th>
-            <th>Customer</th>
-            <th style={{ textAlign: 'right' }}>Amount</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {recentOrders.map((order) => {
-            const meta = statusMeta[order.status] || statusMeta.pending;
-            return (
-              <tr key={order.id}>
-                <td>#{order.id}</td>
-                <td>{order.customer_name}</td>
-                <td style={{ textAlign: 'right' }}>₦{order.total_amount.toLocaleString()}</td>
-                <td><span className={meta.tagClass}>{meta.label}</span></td>
+      <h2 style={{ fontSize: 16, margin: 'var(--space-8) 0 var(--space-3)' }}>Recent orders</h2>
+      <div className="section-card">
+        <div className="table-wrap">
+          <table className="table table-cards">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Customer</th>
+                <th style={{ textAlign: 'right' }}>Amount</th>
+                <th>Status</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {recentOrders.map((order) => {
+                const meta = statusMeta[order.status] || statusMeta.pending;
+                return (
+                  <tr key={order.id}>
+                    <td data-col="order">#{order.id}</td>
+                    <td data-col="customer">{order.customer_name}</td>
+                    <td data-col="amount" className="num" style={{ textAlign: 'right' }}>₦{order.total_amount.toLocaleString()}</td>
+                    <td data-col="status"><span className={meta.tagClass}>{meta.label}</span></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

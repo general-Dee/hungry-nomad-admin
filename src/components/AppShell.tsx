@@ -18,7 +18,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {isAuthenticated && <TopNav />}
       <main
         style={isAuthenticated ? { maxWidth: 1180, margin: '0 auto' } : undefined}
-        className={isAuthenticated ? 'px-6 pt-8 pb-16' : undefined}
+        className={isAuthenticated ? 'shell-main' : undefined}
       >
         {children}
       </main>

@@ -125,7 +125,7 @@ export default function TopNav() {
       <nav className="nav">
         <span className="nav-brand">Hungry Nomad</span>
 
-        <div className="hidden md:flex md:items-center md:gap-4">
+        <div className="nav-links hidden md:flex md:items-center md:gap-4">
           {navigation.map((item) => (
             <Link key={item.name} href={item.href} aria-current={pathname === item.href ? 'page' : undefined}>
               {item.name}
@@ -175,7 +175,7 @@ export default function TopNav() {
 
       {/* Mobile nav panel — pushes content down, no overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden" style={{ padding: 'var(--space-4)', borderBottom: '2px solid var(--color-divider)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+        <div className="mobile-panel md:hidden" style={{ padding: 'var(--space-3) clamp(12px, 4vw, 24px)', borderBottom: '1px solid var(--color-divider)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
           {navigation.map((item) => (
             <Link
               key={item.name}
