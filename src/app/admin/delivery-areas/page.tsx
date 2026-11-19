@@ -79,7 +79,7 @@ export default function DeliveryAreasPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-6)' }}>
         <div>
           <div className="card-kicker">Delivery areas</div>
           <h1 style={{ margin: 0 }}>Fees by LGA</h1>

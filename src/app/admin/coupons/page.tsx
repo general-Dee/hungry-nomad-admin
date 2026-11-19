@@ -114,6 +114,7 @@ export default function CouponsPage() {
         <input className="input" type="date" value={draft.ends_at} onChange={(e) => setDraft({ ...draft, ends_at: e.target.value })} />
         <button className="btn btn-primary" type="submit">Create coupon</button>
       </form>
+      <div className="table-wrap">
       <table className="table">
         <thead>
           <tr><th>Code</th><th>Discount</th><th>Uses</th><th>Status</th><th></th></tr>
@@ -130,6 +131,7 @@ export default function CouponsPage() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

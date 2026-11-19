@@ -375,7 +375,16 @@
 
   /* Tables scroll inside their own box */
   .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius-md); }
-  .table td { overflow-wrap: anywhere; }
+  .table th { color: var(--color-muted); white-space: nowrap; }
+  .table td { overflow-wrap: break-word; }
+  .btn-icon { flex: none; }
+  .table td select.input { width: auto; min-width: 7.5rem; flex: none; }
+  /* Right-aligned cells hold amounts: keep ₦ figures on one line */
+  .table td[style*='text-align: right'], .table td[style*='text-align:right'] { white-space: nowrap; }
+  @media (min-width: 768px) {
+    .nav .nav-links a { display: inline-flex; align-items: center; min-height: var(--tap); }
+  }
+  .login-page a.text-muted { display: inline-flex; align-items: center; min-height: var(--tap); }
   .table td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
   .table tbody tr:hover { background: color-mix(in srgb, var(--color-accent) 5%, transparent); }
 
@@ -393,7 +402,7 @@
       display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center;
       padding: 12px 4px; border-bottom: 1px solid var(--color-divider);
     }
-    .table-cards td { border: 0; padding: 0; text-align: left !important; }
+    .table-cards td { border: 0; padding: 0; text-align: left !important; overflow-wrap: anywhere; }
     .table-cards td[data-col='customer'] { grid-column: 1; grid-row: 1; font-weight: 600; }
     .table-cards td[data-col='amount'] { grid-column: 2; grid-row: 1; text-align: right !important; }
     .table-cards td[data-col='order'] { grid-column: 1; grid-row: 2; font-size: 12px; color: var(--color-muted); }

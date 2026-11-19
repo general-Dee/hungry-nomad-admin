@@ -200,7 +200,7 @@ export default function OrdersPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-6)' }}>
         <div>
           <div className="card-kicker">Orders</div>
           <h1 style={{ margin: 0 }}>Track deliveries</h1>
@@ -291,7 +291,7 @@ export default function OrdersPage() {
                   </td>
                   <td>
                     <div>{order.customer_name}</div>
-                    <div style={{ fontSize: 12, opacity: 0.55 }}>{order.customer_phone}</div>
+                    <div className="text-muted" style={{ fontSize: 12 }}>{order.customer_phone}</div>
                   </td>
                   <td style={{ textAlign: 'right' }}>₦{order.total_amount.toLocaleString()}</td>
                   <td><span className={statusConfig[order.status]?.tagClass || 'tag tag-neutral'}>{statusConfig[order.status]?.label || order.status}</span></td>
