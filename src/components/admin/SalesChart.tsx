@@ -12,59 +12,9 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { ChartBar } from '@phosphor-icons/react';
+import { bucketSales, type RawOrder, type SalesRange } from '@/lib/salesBuckets';
 
-interface RawOrder {
-  created_at: string;
-  total_amount: number;
-}
-
-interface ChartBar {
-  label: string;
-  total: number;
-}
-
-const DAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-function startOfDay(d: Date) {
-  const c = new Date(d);
-  c.setHours(0, 0, 0, 0);
-  return c;
-}
-
-function bucketWeek(orders: RawOrder[]): ChartBar[] {
-  const today = startOfDay(new Date());
-  const days: { key: string; label: string; total: number }[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    days.push({ key: d.toISOString().split('T')[0], label: DAY_ABBR[d.getDay()], total: 0 });
-  }
-  const byKey = new Map(days.map((d) => [d.key, d]));
-  orders.forEach((o) => {
-    const key = new Date(o.created_at).toISOString().split('T')[0];
-    const bucket = byKey.get(key);
-    if (bucket) bucket.total += o.total_amount;
-  });
-  return days.map((d) => ({ label: d.label, total: d.total }));
-}
-
-function bucketMonth(orders: RawOrder[]): ChartBar[] {
-  const today = startOfDay(new Date());
-  const start = new Date(today);
-  start.setDate(start.getDate() - 27); // 28-day window, 4 buckets of 7 days
-
-  const buckets = [0, 1, 2, 3].map((i) => ({ label: `Wk ${i + 1}`, total: 0 }));
-  orders.forEach((o) => {
-    const created = startOfDay(new Date(o.created_at));
-    if (created < start || created > today) return;
-    const dayIndex = Math.floor((created.getTime() - start.getTime()) / 86400000);
-    const bucketIndex = Math.min(3, Math.floor(dayIndex / 7));
-    buckets[bucketIndex].total += o.total_amount;
-  });
-  return buckets;
-}
-
-export default function SalesChart({ range }: { range: '7d' | '30d' }) {
+export default function SalesChart({ range }: { range: SalesRange }) {
   const [orders, setOrders] = useState<RawOrder[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -74,7 +24,9 @@ export default function SalesChart({ range }: { range: '7d' | '30d' }) {
         .from('orders')
         .select('created_at, total_amount')
         .eq('status', 'paid')
-        .order('created_at', { ascending: true });
+        // Newest first: if the API caps the row count, the capped rows are the oldest
+        // ones, which no range charts. Bucketing does not depend on row order.
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error(error);
@@ -90,7 +42,7 @@ export default function SalesChart({ range }: { range: '7d' | '30d' }) {
   }, []);
 
   const data = useMemo(
-    () => (range === '7d' ? bucketWeek(orders) : bucketMonth(orders)),
+    () => bucketSales(orders, range),
     [orders, range]
   );
 

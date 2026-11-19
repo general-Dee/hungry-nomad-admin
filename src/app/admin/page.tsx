@@ -8,6 +8,8 @@ import { supabase } from '@/lib/supabaseClient';
 import dynamic from 'next/dynamic';
 import { ArrowsClockwise } from '@phosphor-icons/react';
 
+import { SALES_RANGES, rangeHeading, type SalesRange } from '@/lib/salesBuckets';
+
 // Dynamically import SalesChart with SSR disabled
 const SalesChart = dynamic(() => import('@/components/admin/SalesChart'), { ssr: false });
 
@@ -44,7 +46,7 @@ export default function AdminDashboard() {
   const [totalOrders, setTotalOrders] = useState(0);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [range, setRange] = useState<'7d' | '30d'>('7d');
+  const [range, setRange] = useState<SalesRange>('7d');
 
   const fetchStats = useCallback(async () => {
     const { count: pending, error: pendingError } = await supabase
@@ -226,17 +228,15 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
-        <h2 style={{ fontSize: 16, margin: 0 }}>Sales, {range === '7d' ? 'last 7 days' : 'last 4 weeks'}</h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+        <h2 style={{ fontSize: 16, margin: 0 }}>Sales, {rangeHeading(range)}</h2>
         <div className="seg" role="radiogroup" aria-label="Range">
-          <label className="seg-opt">
-            <input type="radio" name="range" checked={range === '7d'} onChange={() => setRange('7d')} />
-            7 days
-          </label>
-          <label className="seg-opt">
-            <input type="radio" name="range" checked={range === '30d'} onChange={() => setRange('30d')} />
-            30 days
-          </label>
+          {SALES_RANGES.map((r) => (
+            <label key={r.value} className="seg-opt">
+              <input type="radio" name="range" checked={range === r.value} onChange={() => setRange(r.value)} />
+              {r.label}
+            </label>
+          ))}
         </div>
       </div>
       <SalesChart range={range} />
